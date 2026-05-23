@@ -13,3 +13,31 @@ function c() {
 # Scrapes the actual output of your previous command directly from the Tmux screen buffer!
 # This is completely safe and does NOT re-run your previous command.
 alias clast='python3 ~/.local/bin/tmux-copy-last | pbcopy && echo "\n\033[0;32m[Output perfectly captured from terminal buffer and copied!]\033[0m"'
+
+# 3. 'ask' function
+# Converts natural language to a shell command using Gemini and copies to clipboard.
+# Usage: ask find all pdf files modified in the last 2 days
+function ask() {
+    if [ -z "$*" ]; then
+        echo "Usage: ask <natural language request>"
+        return 1
+    fi
+    echo -e "\033[0;33mThinking...\033[0m"
+    
+    # Run the Gemini CLI headless mode. We pass all arguments ($*) without quotes.
+    # We pipe stderr to /dev/null to remove CLI startup warnings.
+    # We use sed to strip markdown code block ticks if the LLM includes them.
+    local cmd=$(gemini -p "You are a shell command generator. Output ONLY the raw executable bash/zsh command for this request, nothing else. No markdown blocks. Request: $*" 2>/dev/null | sed 's/^```[a-z]*//' | sed 's/```$//' | sed '/^$/d' | tail -n 1)
+    
+    if [ -z "$cmd" ]; then
+        echo -e "\033[0;31mError generating command.\033[0m"
+        return 1
+    fi
+
+    echo -e "\n\033[0;32mGenerated Command:\033[0m"
+    echo "$cmd"
+    
+    # Copy to clipboard
+    echo -n "$cmd" | pbcopy
+    echo -e "\n\033[0;32m[Command copied to clipboard! Ready to paste.]\033[0m"
+}

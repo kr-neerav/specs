@@ -27,6 +27,17 @@ This specification details custom extensions for the Zsh environment that provid
 4. The extracted text must be piped directly to the system clipboard.
 5. A success message must be printed to the terminal.
 
+### 2.3 Natural Language Command Generator (`ask`)
+1. Provide a shell function named `ask`.
+2. The user can type `ask <any natural language request>` (no quotes required) to describe a shell command they want to run.
+3. The function must:
+   - Concatenate all arguments passed to it.
+   - Invoke a local LLM CLI tool (specifically `gemini`) in headless mode (`-p`).
+   - Use a strict system prompt to ensure the LLM outputs *only* the raw, executable shell command.
+   - Filter out any warning messages, extraneous text, or markdown code block ticks.
+4. The generated command must be printed cleanly to the terminal for the user to visually review.
+5. The generated command must be simultaneously piped to the system clipboard (via `pbcopy`) so it is instantly ready to paste and execute.
+
 ## 3. Reference Files
 - `zshrc_snippet.sh.example`: Contains the exact shell functions and aliases to append to the end of `~/.zshrc`.
 - `tmux-copy-last.py.example`: The Python script required to fulfill the Tmux buffer scraping capability. This should be placed in `~/.local/bin/tmux-copy-last` and made executable.
