@@ -1,13 +1,14 @@
-# Modal Terminal Specs
+# Project Specifications
 
-This repository contains the requirement specifications and backup documentation for my **Modal Terminal Experience** — a highly customized Tmux configuration that provides a browser-like, vim-modal multiplexing environment.
+This repository serves as a centralized collection of technical specifications, requirements, and reference configurations for various projects.
 
-## Contents
-- `requirement_spec.md`: The complete requirements, features, and behavioral specifications for the environment.
-- `tmux.conf.example`: The actual configuration file used to fulfill these requirements.
+Each folder within this repository corresponds to a distinct problem or project, containing its own `README.md`, requirement specifications, and any necessary configuration examples to implement the solution on a new machine.
 
-## Deployment
-You can use these specifications to rebuild this terminal experience on any new laptop:
-1. Install `tmux` (e.g., `brew install tmux` on macOS).
-2. Copy `tmux.conf.example` to your home directory as `~/.tmux.conf`.
-3. Start `tmux`!
+## Projects Directory
+
+| Project | Description |
+|---------|-------------|
+| **[`modal-terminal`](modal-terminal/)** | A browser-like, vim-modal terminal multiplexer experience built on Tmux. Features vertical tabs, modal editing architecture, and quick search. |
+
+---
+*Maintained by kr-neerav*
