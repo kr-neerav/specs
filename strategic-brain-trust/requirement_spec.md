@@ -20,7 +20,7 @@ The system runs five personas in this order (see `prompts/` for verbatim prompts
 
 | # | Persona | Output type | Key fields |
 |---|---|---|---|
-| 1 | **First-Principles Thinker** | Strict JSON | `core_assumptions[]`, `first_order_effects[]` |
+| 1 | **First-Principles Thinker** | Strict JSON | `thought_log`, `core_assumptions[]` (with `confidence_level`), `first_order_effects[]` (with `confidence_level`) |
 | 2 | **Systems Thinker** | Strict JSON | `second_order_effects[]`, `unintended_consequences[]` |
 | 3 | **Pre-Mortem Risk Strategist** | Strict JSON | `failure_modes[]`, `mitigation_strategies[]` (index-aligned) |
 | 4 | **Red Teamer (Devil's Advocate)** | Strict JSON | `critical[]`, `important[]`, `minor[]` |
@@ -28,11 +28,12 @@ The system runs five personas in this order (see `prompts/` for verbatim prompts
 
 ### 3.1 Output Contract
 
-1. Personas 1–4 MUST emit a single JSON object and nothing else (no prose, no markdown fences, no preamble). The orchestrator validates with Pydantic (or equivalent) and treats validation failures as empty payloads — the deliberation continues but downstream personas receive less context.
+1. Personas 1–4 MUST emit a single JSON object and nothing else (no prose, no markdown fences, no preamble). The First-Principles Thinker includes a `thought_log` scratchpad at the root of the JSON for cognitive scaffolding, and tags each assumption/effect with a `confidence_level` (`HIGH`, `MEDIUM`, or `LOW`). The orchestrator validates with Pydantic (or equivalent) and treats validation failures as empty payloads — the deliberation continues but downstream personas receive less context.
 2. Persona 5 MUST emit Markdown only (no JSON wrapping, no fences around the entire response).
 3. List items in personas 1–3 are bounded (3–7 per list) and concise (≤30–35 words per item).
 4. Persona 4's three lists may each be empty. Total items across all three: 2–8. Items must point to a SPECIFIC upstream artifact, not generic critique.
 5. Persona 5's required H2 sections must appear in the listed order with the exact header text.
+6. The First-Principles Thinker prompt abstracts tool implementations, specifying functional capabilities (e.g. "internal search and documentation tools") rather than hardcoding names, and enforces at least one non-technical constraint (economics, psychology, etc.) to prevent perspective homogenization. Bedrock is defined to include socio-technical primitives like human incentives and institutional inertia.
 
 ### 3.2 Persona Prompts (CLI-agnostic)
 
@@ -87,13 +88,19 @@ first_principles → systems_thinker → pre_mortem → red_team
 ### 5.2 Streamlit UI
 
 1. The UI runs in three modes:
-   - `new`: blank slate; user enters a problem and clicks Run.
-   - `running`: the graph streams node-by-node; each persona's output renders as soon as it's parsed; the session is persisted incrementally.
+   - `new`: blank slate; user enters a problem, optional file attachments (text/code files only), and clicks Run. Uploaded files are parsed and appended to the problem under a `### Supporting Documents` section.
+   - `running`: the graph streams node-by-node; each persona's output renders in a beautified (non-JSON) format as soon as it's parsed; the session is persisted incrementally.
    - `view`: a completed (or partial) session is displayed; the user can read the deliberation and start a deep-dive chat.
 2. The sidebar MUST list every saved session as a clickable card showing title, timestamp, ID, severity-count badges (🔴N 🟠N 🟢N), credits total, and chat-message count. Clicking a card loads it into `view` mode.
-3. The metrics strip across the top of `view` mode shows: kiro/LLM credits, call count, compute time, iterations, latest critique severity counts, and chat message count.
-4. The Red Teamer's panel renders each non-empty severity bucket with a colored header and bulleted items. A re-loop banner appears when Critical was non-empty and iterations < cap; a hard-error banner appears when the cap was hit with Criticals still open.
-5. After deliberation completes, a Deep-Dive Chat panel appears with a model selector. Default model: `claude-opus-4.7` if using kiro; the equivalent Opus 4.x or Sonnet 4.x for `claude`; the latest Gemini Pro thinking model for `gemini`.
+3. Below the title in `view` mode, the original problem statement and any attached files are rendered in a collapsible expander: `📝 Original Problem Statement & Context`.
+4. The metrics strip across the top of `view` mode shows: kiro/LLM credits, call count, compute time, iterations, latest critique severity counts, and chat message count.
+5. The deliberation history tab displays agent outputs formatted cleanly (no raw JSON):
+   - First Principles displays the `thought_log` scratchpad in an expander, followed by assumptions/effects tagged with color-coded confidence pills (🟢, 🟡, 🔴).
+   - Systems Thinker shows columns for second-order effects and unintended consequences.
+   - Pre-Mortem displays failure modes paired with mitigations side-by-side.
+   - Red Teamer displays critique items categorized under red, orange, and green severity boxes.
+6. The completed session layout is vertical: the Synthesis and Deliberation History tabs appear at the top, and a divider separates the Deep-Dive Chat section situated directly below them. The chat history is displayed inside a scrollable, height-bounded container (`height=500`) with the input bar pinned at the bottom.
+7. After deliberation completes, a Deep-Dive Chat panel appears with a model selector. Default model: `claude-opus-4.7` if using kiro; the equivalent Opus 4.x or Sonnet 4.x for `claude`; the latest Gemini Pro thinking model for `gemini`.
 
 ### 5.3 Resume
 
@@ -160,6 +167,7 @@ The system MUST allow the user to choose which LLM CLI provider to use. Three pr
    - `final_strategy: str` (Markdown).
    - `iterations: int`.
 4. Each persona node MUST persist its result to the session file before returning, so a crash mid-run leaves a partial-but-valid session that the UI can still display.
+5. The orchestrator MUST act as a generator (yielding events like `(persona_name, output_data)`) to allow the UI to consume and render the outputs incrementally as the state machine progresses.
 
 ## 9. Deep-Dive Chat
 

@@ -10,7 +10,9 @@ Each folder within this repository corresponds to a distinct problem or project,
 |---------|-------------|
 | **[`modal-terminal`](modal-terminal/)** | A browser-like, vim-modal terminal multiplexer experience built on Tmux. Features vertical tabs, modal editing architecture, and quick search. |
 | **[`strategic-brain-trust`](strategic-brain-trust/)** | A multi-persona LLM orchestration that runs five thinking-mode agents (first principles → systems → pre-mortem → red team → synthesis) with severity-driven re-loops. CLI-agnostic — works with `claude`, `gemini`, or `kiro-cli`. |
+| **[`terminal-clip-agent`](terminal-clip-agent/)** | A lightweight, portable speech-to-text clipboard extraction tool. Integrates with any stream/log speech source, scans for configurable marker keywords, and pipes output to clipboard and external scripts while providing a live terminal UI. |
 | **[`zshrc`](zshrc/)** | Custom extensions for Zsh, including a script to safely capture and copy the output of a previously executed command directly from the Tmux screen buffer. |
 
 ---
 *Maintained by kr-neerav*
+
