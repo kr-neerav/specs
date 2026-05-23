@@ -16,8 +16,9 @@ function create() {
 alias clast='python3 ~/.local/bin/tmux-copy-last | pbcopy && echo "\n\033[0;32m[Output perfectly captured from terminal buffer and copied!]\033[0m"'
 
 # 3. 'ask' function
-# Converts natural language to a shell command using Gemini and copies to clipboard.
-# Now includes an explanation of the command!
+# Converts natural language to a shell command using kiro-cli's `zshrc-ask`
+# basic agent (no MCP, no tool access) and copies it to the clipboard.
+# Install the agent first: cp ask-agent.json.example ~/.kiro/agents/zshrc-ask.json
 # Usage: ask find all pdf files modified in the last 2 days
 function ask() {
     if [ -z "$*" ]; then
@@ -25,26 +26,23 @@ function ask() {
         return 1
     fi
     echo -e "\033[0;33mThinking...\033[0m"
-    
-    local prompt="You are a shell command expert. For the following request, provide the raw shell command and a brief explanation. You MUST wrap your command and explanation in these exact delimiters, with no markdown code blocks:
-___CMD_START___
-<raw command here>
-___CMD_END___
-___EXP_START___
-<brief explanation here>
-___EXP_END___
 
-Request: $*"
+    # Run kiro-cli with the basic zshrc-ask agent. stderr is discarded; stdout
+    # contains the agent response, kiro-cli decoration (prompt prefix, banners)
+    # and a trailing "Credits: X.XX" footer.
+    local raw="$(kiro-cli chat --no-interactive --trust-all-tools --agent zshrc-ask "$*" 2>/dev/null)"
 
-    # Run the Gemini CLI headless mode.
-    local response=$(gemini -p "$prompt" 2>/dev/null)
-    
-    # Extract the multi-line command and explanation using awk
-    local cmd=$(echo "$response" | awk '/^___CMD_START___/{flag=1; next} /^___CMD_END___/{flag=0} flag')
-    local exp=$(echo "$response" | awk '/^___EXP_START___/{flag=1; next} /^___EXP_END___/{flag=0} flag')
-    
+    # Strip ANSI escape sequences so awk can match plain delimiter strings.
+    local response="$(printf '%s' "$raw" | LC_ALL=C sed -E 's/\x1b\[[0-9;?]*[A-Za-z]//g; s/\r//g')"
+
+    # Extract command + explanation by exact-match on the <<<CMD>>> markers.
+    local cmd=$(echo "$response" | awk '/<<<CMD>>>/{flag=1; next} /<<<END_CMD>>>/{flag=0} flag' | sed '/^[[:space:]]*$/d')
+    local exp=$(echo "$response" | awk '/<<<EXP>>>/{flag=1; next} /<<<END_EXP>>>/{flag=0} flag' | sed '/^[[:space:]]*$/d')
+
     if [ -z "$cmd" ]; then
         echo -e "\033[0;31mError generating command.\033[0m"
+        echo "(raw kiro-cli stdout — first 400 chars for debugging:)"
+        echo "$response" | head -c 400
         return 1
     fi
 
@@ -52,7 +50,7 @@ Request: $*"
     echo "$cmd"
     echo -e "\n\033[0;36mExplanation:\033[0m"
     echo "$exp"
-    
+
     # Copy ONLY the command to clipboard
     echo -n "$cmd" | pbcopy
     echo -e "\n\033[0;32m[Command ONLY copied to clipboard! Ready to paste.]\033[0m"

@@ -29,13 +29,15 @@ This specification details custom extensions for the Zsh environment tailored fo
 ### 2.3 Natural Language Command Generator (`ask`)
 1. Provide a shell function named `ask`.
 2. The user can type `ask <any natural language request>` (no quotes required) to describe a shell command they want to run.
-3. The function must:
-   - Concatenate all arguments passed to it.
-   - Invoke a local LLM CLI tool (specifically `gemini`) in headless mode (`-p`).
-   - Use a strict system prompt to ensure the LLM outputs exactly two things: the raw executable shell command, and a brief explanation of how it works.
-   - Use text delimiters and tools like `awk` to extract the command and the explanation separately, ignoring any warning messages or extraneous output.
-4. The generated command and the brief explanation must be printed cleanly to the terminal for the user to visually review and understand.
-5. Only the generated command must be simultaneously piped to the system clipboard (via `pbcopy`) so it is instantly ready to paste and execute without dragging the explanation along.
+3. **Backend agent.** The function must drive a **basic kiro-cli agent** named `zshrc-ask` rather than calling a model SDK directly. The agent is intentionally minimal: no MCP servers, no tool access (apart from `fs_read` for token discovery), and a single system prompt that defines the delimited output contract. The agent's JSON config lives at `~/.kiro/agents/zshrc-ask.json`. A reference copy is shipped at `ask-agent.json.example` (see §3).
+4. The function must:
+   - Concatenate all arguments passed to it as the user message.
+   - Invoke `kiro-cli chat --no-interactive --trust-all-tools --agent zshrc-ask "$*"`.
+   - Strip ANSI escape sequences from kiro-cli's stdout (kiro-cli decorates output with color codes that would otherwise confuse delimiter matching).
+   - Use `awk` to extract the command and explanation between `<<<CMD>>>`/`<<<END_CMD>>>` and `<<<EXP>>>`/`<<<END_EXP>>>` markers respectively. The angle-bracket delimiter style is mandatory: underscored markers like `___CMD_START___` get rendered as Markdown horizontal rules by some kiro-cli output paths and break extraction.
+5. The generated command and the brief explanation must be printed cleanly to the terminal for the user to visually review and understand.
+6. Only the generated command must be simultaneously piped to the system clipboard (via `pbcopy`) so it is instantly ready to paste and execute without dragging the explanation along.
+7. On extraction failure (e.g., the model deviates from the delimiter contract), the function must print an error and dump the first 400 characters of the raw kiro-cli stdout for debugging — never silently fail.
 
 ### 2.4 Clear-Screen Alias (`cl`)
 1. Provide a shell alias named `cl` that runs `clear`.
@@ -45,3 +47,4 @@ This specification details custom extensions for the Zsh environment tailored fo
 ## 3. Reference Files
 - `zshrc_snippet.sh.example`: Contains the exact shell functions and aliases to append to the end of `~/.zshrc`.
 - `tmux-copy-last.py.example`: The Python script required to fulfill the Tmux buffer scraping capability. This should be placed in `~/.local/bin/tmux-copy-last` and made executable.
+- `ask-agent.json.example`: The kiro-cli agent definition powering §2.3 (`ask`). Install by copying to `~/.kiro/agents/zshrc-ask.json`, then verify with `kiro-cli agent list | grep zshrc-ask`.
