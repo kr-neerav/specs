@@ -33,10 +33,10 @@ This specification details custom extensions for the Zsh environment that provid
 3. The function must:
    - Concatenate all arguments passed to it.
    - Invoke a local LLM CLI tool (specifically `gemini`) in headless mode (`-p`).
-   - Use a strict system prompt to ensure the LLM outputs *only* the raw, executable shell command.
-   - Filter out any warning messages, extraneous text, or markdown code block ticks.
-4. The generated command must be printed cleanly to the terminal for the user to visually review.
-5. The generated command must be simultaneously piped to the system clipboard (via `pbcopy`) so it is instantly ready to paste and execute.
+   - Use a strict system prompt to ensure the LLM outputs exactly two things: the raw executable shell command, and a brief explanation of how it works.
+   - Use text delimiters and tools like `awk` to extract the command and the explanation separately, ignoring any warning messages or extraneous output.
+4. The generated command and the brief explanation must be printed cleanly to the terminal for the user to visually review and understand.
+5. Only the generated command must be simultaneously piped to the system clipboard (via `pbcopy`) so it is instantly ready to paste and execute without dragging the explanation along.
 
 ## 3. Reference Files
 - `zshrc_snippet.sh.example`: Contains the exact shell functions and aliases to append to the end of `~/.zshrc`.

@@ -16,6 +16,7 @@ alias clast='python3 ~/.local/bin/tmux-copy-last | pbcopy && echo "\n\033[0;32m[
 
 # 3. 'ask' function
 # Converts natural language to a shell command using Gemini and copies to clipboard.
+# Now includes an explanation of the command!
 # Usage: ask find all pdf files modified in the last 2 days
 function ask() {
     if [ -z "$*" ]; then
@@ -24,10 +25,22 @@ function ask() {
     fi
     echo -e "\033[0;33mThinking...\033[0m"
     
-    # Run the Gemini CLI headless mode. We pass all arguments ($*) without quotes.
-    # We pipe stderr to /dev/null to remove CLI startup warnings.
-    # We use sed to strip markdown code block ticks if the LLM includes them.
-    local cmd=$(gemini -p "You are a shell command generator. Output ONLY the raw executable bash/zsh command for this request, nothing else. No markdown blocks. Request: $*" 2>/dev/null | sed 's/^```[a-z]*//' | sed 's/```$//' | sed '/^$/d' | tail -n 1)
+    local prompt="You are a shell command expert. For the following request, provide the raw shell command and a brief explanation. You MUST wrap your command and explanation in these exact delimiters, with no markdown code blocks:
+___CMD_START___
+<raw command here>
+___CMD_END___
+___EXP_START___
+<brief explanation here>
+___EXP_END___
+
+Request: $*"
+
+    # Run the Gemini CLI headless mode.
+    local response=$(gemini -p "$prompt" 2>/dev/null)
+    
+    # Extract the multi-line command and explanation using awk
+    local cmd=$(echo "$response" | awk '/^___CMD_START___/{flag=1; next} /^___CMD_END___/{flag=0} flag')
+    local exp=$(echo "$response" | awk '/^___EXP_START___/{flag=1; next} /^___EXP_END___/{flag=0} flag')
     
     if [ -z "$cmd" ]; then
         echo -e "\033[0;31mError generating command.\033[0m"
@@ -36,8 +49,10 @@ function ask() {
 
     echo -e "\n\033[0;32mGenerated Command:\033[0m"
     echo "$cmd"
+    echo -e "\n\033[0;36mExplanation:\033[0m"
+    echo "$exp"
     
-    # Copy to clipboard
+    # Copy ONLY the command to clipboard
     echo -n "$cmd" | pbcopy
-    echo -e "\n\033[0;32m[Command copied to clipboard! Ready to paste.]\033[0m"
+    echo -e "\n\033[0;32m[Command ONLY copied to clipboard! Ready to paste.]\033[0m"
 }
