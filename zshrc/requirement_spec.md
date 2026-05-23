@@ -5,17 +5,16 @@
 > When implementing this specification on a new machine, **DO NOT replace the existing `~/.zshrc` file**. Instead, append these configurations and scripts as **additional capabilities** to the existing file. This ensures you do not break standard Zsh configurations or Oh-My-Zsh setups.
 
 ## 1. Overview
-This specification details custom extensions for the Zsh environment that provide advanced command output capture capabilities, specifically tailored for users running inside a Tmux multiplexer.
+This specification details custom extensions for the Zsh environment tailored for users running inside a Tmux multiplexer. It provides three command-line capabilities: opening a new tmux tab in the current directory, retroactively capturing the previous command's output to the clipboard, and converting natural-language requests into shell commands.
 
 ## 2. Core Requirements
 
-### 2.1 Live Output Capture (`c`)
-1. Provide a wrapper command named `c`.
-2. When a user runs `c <command>`, the environment must:
-   - Execute the target `<command>`.
-   - Display the output (both stdout and stderr) to the terminal normally so the user can read it in real-time.
-   - Simultaneously pipe the exact same output directly to the system clipboard (e.g., via `pbcopy`).
-   - Print a success message (e.g., "[Copied to clipboard!]") after completion.
+### 2.1 New Tmux Tab (`create`)
+1. Provide a shell function named `create`.
+2. When a user runs `create` (no arguments), the environment must:
+   - Verify that the current shell is running inside a tmux session (i.e., the `TMUX` environment variable is set). If not, print an error to stderr and return non-zero — do not attempt to spawn a window outside of tmux.
+   - Open a new tmux tab (window) whose working directory is the **active pane's current working directory** (e.g., via `tmux new-window -c "$PWD"`).
+3. The new tab should inherit the user's standard shell so it is immediately ready for input.
 
 ### 2.2 Retroactive Output Capture (`clast`)
 1. Provide an alias named `clast`.

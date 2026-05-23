@@ -1,12 +1,13 @@
-# --- Command Output Copying ---
+# --- Tab Creation & Output Copying ---
 
-# 1. Wrapper command 'c'
-# Usage: c <command>
-# Runs the command, displays the output normally, AND copies it to the clipboard.
-function c() {
-    # 2>&1 captures both stdout and stderr. tee /dev/tty prints it to the screen.
-    "$@" 2>&1 | tee /dev/tty | pbcopy
-    echo "\n\033[0;32m[Copied to clipboard!]\033[0m"
+# 1. 'create' — open a new tmux tab (window) in the current working directory.
+# Usage: create
+function create() {
+    if [ -z "$TMUX" ]; then
+        echo "create: must be run inside a tmux session" >&2
+        return 1
+    fi
+    tmux new-window -c "$PWD"
 }
 
 # 2. 'clast' alias
