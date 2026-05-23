@@ -1,0 +1,15 @@
+# --- Command Output Copying ---
+
+# 1. Wrapper command 'c'
+# Usage: c <command>
+# Runs the command, displays the output normally, AND copies it to the clipboard.
+function c() {
+    # 2>&1 captures both stdout and stderr. tee /dev/tty prints it to the screen.
+    "$@" 2>&1 | tee /dev/tty | pbcopy
+    echo "\n\033[0;32m[Copied to clipboard!]\033[0m"
+}
+
+# 2. 'clast' alias
+# Scrapes the actual output of your previous command directly from the Tmux screen buffer!
+# This is completely safe and does NOT re-run your previous command.
+alias clast='python3 ~/.local/bin/tmux-copy-last | pbcopy && echo "\n\033[0;32m[Output perfectly captured from terminal buffer and copied!]\033[0m"'

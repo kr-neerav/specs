@@ -9,6 +9,7 @@ Each folder within this repository corresponds to a distinct problem or project,
 | Project | Description |
 |---------|-------------|
 | **[`modal-terminal`](modal-terminal/)** | A browser-like, vim-modal terminal multiplexer experience built on Tmux. Features vertical tabs, modal editing architecture, and quick search. |
+| **[`zshrc`](zshrc/)** | Custom extensions for Zsh, including a script to safely capture and copy the output of a previously executed command directly from the Tmux screen buffer. |
 
 ---
 *Maintained by kr-neerav*
