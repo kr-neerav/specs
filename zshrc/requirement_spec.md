@@ -5,7 +5,7 @@
 > When implementing this specification on a new machine, **DO NOT replace the existing `~/.zshrc` file**. Instead, append these configurations and scripts as **additional capabilities** to the existing file. This ensures you do not break standard Zsh configurations or Oh-My-Zsh setups.
 
 ## 1. Overview
-This specification details custom extensions for the Zsh environment tailored for users running inside a Tmux multiplexer. It provides three command-line capabilities: opening a new tmux tab in the current directory, retroactively capturing the previous command's output to the clipboard, and converting natural-language requests into shell commands.
+This specification details custom extensions for the Zsh environment tailored for users running inside a Tmux multiplexer. It provides four command-line capabilities: opening a new tmux tab in the current directory, retroactively capturing the previous command's output to the clipboard, converting natural-language requests into shell commands, and a short alias for clearing the screen.
 
 ## 2. Core Requirements
 
@@ -36,6 +36,11 @@ This specification details custom extensions for the Zsh environment tailored fo
    - Use text delimiters and tools like `awk` to extract the command and the explanation separately, ignoring any warning messages or extraneous output.
 4. The generated command and the brief explanation must be printed cleanly to the terminal for the user to visually review and understand.
 5. Only the generated command must be simultaneously piped to the system clipboard (via `pbcopy`) so it is instantly ready to paste and execute without dragging the explanation along.
+
+### 2.4 Clear-Screen Alias (`cl`)
+1. Provide a shell alias named `cl` that runs `clear`.
+2. The alias serves as a two-character shortcut for clearing the terminal screen — strictly cosmetic, no other behavior.
+3. If the existing `~/.zshrc` already defines `cl` for another purpose, the implementation must overwrite or remove the prior definition so `cl` unambiguously means "clear screen."
 
 ## 3. Reference Files
 - `zshrc_snippet.sh.example`: Contains the exact shell functions and aliases to append to the end of `~/.zshrc`.

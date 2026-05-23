@@ -57,3 +57,8 @@ Request: $*"
     echo -n "$cmd" | pbcopy
     echo -e "\n\033[0;32m[Command ONLY copied to clipboard! Ready to paste.]\033[0m"
 }
+
+# 4. 'cl' alias — short shortcut for `clear`.
+# If your existing ~/.zshrc has `cl` aliased to something else, remove that
+# prior definition first so this one wins unambiguously.
+alias cl='clear'
