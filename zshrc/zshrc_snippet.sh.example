@@ -35,9 +35,12 @@ function ask() {
     # Strip ANSI escape sequences so awk can match plain delimiter strings.
     local response="$(printf '%s' "$raw" | LC_ALL=C sed -E 's/\x1b\[[0-9;?]*[A-Za-z]//g; s/\r//g')"
 
-    # Extract command + explanation by exact-match on the <<<CMD>>> markers.
-    local cmd=$(echo "$response" | awk '/<<<CMD>>>/{flag=1; next} /<<<END_CMD>>>/{flag=0} flag' | sed '/^[[:space:]]*$/d')
-    local exp=$(echo "$response" | awk '/<<<EXP>>>/{flag=1; next} /<<<END_EXP>>>/{flag=0} flag' | sed '/^[[:space:]]*$/d')
+    # Extract command + explanation. The closing delimiter is `===/CMD===` —
+    # the leading slash makes it textually distinct from the opening one so
+    # the model can't accidentally produce a closing tag that matches the
+    # opening pattern.
+    local cmd=$(echo "$response" | awk 'index($0,"===/CMD===") {flag=0} flag; index($0,"===CMD===") && !index($0,"===/CMD===") {flag=1}' | sed '/^[[:space:]]*$/d')
+    local exp=$(echo "$response" | awk 'index($0,"===/EXP===") {flag=0} flag; index($0,"===EXP===") && !index($0,"===/EXP===") {flag=1}' | sed '/^[[:space:]]*$/d')
 
     if [ -z "$cmd" ]; then
         echo -e "\033[0;31mError generating command.\033[0m"

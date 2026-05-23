@@ -34,7 +34,7 @@ This specification details custom extensions for the Zsh environment tailored fo
    - Concatenate all arguments passed to it as the user message.
    - Invoke `kiro-cli chat --no-interactive --trust-all-tools --agent zshrc-ask "$*"`.
    - Strip ANSI escape sequences from kiro-cli's stdout (kiro-cli decorates output with color codes that would otherwise confuse delimiter matching).
-   - Use `awk` to extract the command and explanation between `<<<CMD>>>`/`<<<END_CMD>>>` and `<<<EXP>>>`/`<<<END_EXP>>>` markers respectively. The angle-bracket delimiter style is mandatory: underscored markers like `___CMD_START___` get rendered as Markdown horizontal rules by some kiro-cli output paths and break extraction.
+   - Use `awk` to extract the command and explanation between `===CMD===`/`===/CMD===` and `===EXP===`/`===/EXP===` markers respectively. The closing delimiters MUST include a leading slash so the close tag is textually distinct from the open tag — without that, the model paraphrases (e.g., emitting `<<<ENDCMD>>>` instead of `<<<END_CMD>>>`) cause silent extraction failures. Underscored markers like `___CMD_START___` are also forbidden because some kiro-cli display paths render them as Markdown horizontal rules.
 5. The generated command and the brief explanation must be printed cleanly to the terminal for the user to visually review and understand.
 6. Only the generated command must be simultaneously piped to the system clipboard (via `pbcopy`) so it is instantly ready to paste and execute without dragging the explanation along.
 7. On extraction failure (e.g., the model deviates from the delimiter contract), the function must print an error and dump the first 400 characters of the raw kiro-cli stdout for debugging — never silently fail.
