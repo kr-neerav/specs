@@ -1,0 +1,75 @@
+# Unbind the default prefix (Ctrl-b)
+unbind C-b
+set -g prefix None
+
+# --- Modal Editing Setup ---
+# Press Escape to enter 'normal' mode (command mode)
+bind -n Escape set key-table normal
+
+# Press 'i' in normal mode to enter 'insert' mode (returns to default root table)
+bind -T normal i set key-table root
+
+# If you actually need to send an Escape character to the underlying terminal 
+# (e.g., to exit insert mode in Neovim/Vim), press Escape twice!
+bind -T normal Escape send-keys Escape \; set key-table root
+
+# --- Normal Mode Commands (Vim-like) ---
+# Vim-like pane switching
+bind -T normal h select-pane -L
+bind -T normal j select-pane -D
+bind -T normal k select-pane -U
+bind -T normal l select-pane -R
+
+# Splitting panes (in current directory)
+bind -T normal | split-window -h -c "#{pane_current_path}" \; set key-table root
+bind -T normal - split-window -v -c "#{pane_current_path}" \; set key-table root
+
+# New tabs (windows) in current directory
+bind -T normal c new-window -c "#{pane_current_path}" \; set key-table root
+
+# Vertical Tabs Menu
+# We must switch back to 'root' table so that j/k keys work for browsing the menu!
+bind -T normal Space set key-table root \; choose-tree -Zw
+
+# Search through tabs/windows
+bind -T normal / command-prompt -p "Search Tabs:" "find-window '%%'"
+
+# Cycle through tabs quickly
+bind -T normal Tab next-window
+bind -T normal BTab previous-window
+
+# Renaming tabs
+bind -T normal r set key-table root \; command-prompt -I "#{window_name}" "rename-window '%%'"
+
+# Close pane or window
+bind -T normal x kill-pane
+bind -T normal X kill-window
+
+# Close all tabs (kill session)
+bind -T normal Q kill-session
+
+# --- Other Settings ---
+set -g mouse on
+setw -g mode-keys vi
+set -g status-keys vi
+
+# Start indexing at 1
+set -g base-index 1
+set -g pane-base-index 1
+set-window-option -g pane-base-index 1
+set-option -g renumber-windows on
+
+# Status bar showing the current Mode
+set -g status-position bottom
+set -g status-style bg=black,fg=white
+
+# Highlight the current tab in green
+setw -g window-status-current-style bg=green,fg=black,bold
+
+# Monitor for active processing/output in background tabs
+setw -g monitor-activity on
+set -g visual-activity off
+# Highlight tabs with active processing in yellow
+setw -g window-status-activity-style bg=yellow,fg=black,bold
+
+set -g status-right '#{?#{==:#{client_key_table},normal},#[bg=red]#[fg=black,bold] NORMAL #[default],#[bg=green]#[fg=black,bold] INSERT #[default]}'
