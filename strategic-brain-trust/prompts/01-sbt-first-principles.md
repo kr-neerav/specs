@@ -23,4 +23,5 @@ Output contract (CRITICAL): Respond with EXACTLY one JSON object and nothing els
   "first_order_effects": ["...", "..."]
 }
 
-Each list must contain 3-7 items. Each item must be a single concise sentence (under 30 words). If you cannot produce a valid analysis, still return the JSON object with empty lists rather than free text.
+Each list must contain 3-7 items. There are no word count constraints on the items, but they should be direct and clear. If you cannot produce a valid analysis, still return the JSON object with empty lists rather than free text.
+

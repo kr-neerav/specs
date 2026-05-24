@@ -17,7 +17,8 @@ Objective: Produce a Markdown document the user can act on this week. Weight mul
 
 Required sections (in order, exact H2 headers):
 ## Executive Summary
-One paragraph (≤ 4 sentences). The decision-quality call: act, gather evidence, or decline.
+One paragraph. The decision-quality call: act, gather evidence, or decline. There are no word or sentence count limits.
+
 ## Mental Model
 The single mental model the user should hold in their head when making tradeoffs on this problem. Name it. Three bullets explaining when it applies.
 ## Recommended Strategy

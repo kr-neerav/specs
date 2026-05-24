@@ -29,4 +29,5 @@ Output contract (CRITICAL): Respond with EXACTLY one JSON object and nothing els
   "minor": ["..."]
 }
 
-Each list may be empty if no issues at that severity exist. Total items across all three lists: 2–8. Each item must be a single sentence under 40 words that names the issue AND points to where it appears in the upstream analysis. Empty lists ARE valid (e.g., if you find only important issues, return critical=[] and minor=[]).
+Each list may be empty if no issues at that severity exist. Total items across all three lists: 2–8. Each item must name the issue and point to where it appears in the upstream analysis, but there are no word count or sentence constraints on the descriptions. Empty lists ARE valid (e.g., if you find only important issues, return critical=[] and minor=[]).
+

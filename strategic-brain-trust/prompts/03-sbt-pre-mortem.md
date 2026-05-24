@@ -24,4 +24,5 @@ Output contract (CRITICAL): Respond with EXACTLY one JSON object and nothing els
   "mitigation_strategies": ["...", "..."]
 }
 
-Both lists MUST have the same length (3-7 items). Each item must be a single concise sentence (under 35 words).
+Both lists MUST have the same length (3-7 items). There are no word count constraints on the items, but they should be clear and actionable.
+
