@@ -24,15 +24,15 @@ The system runs five personas in this order (see `prompts/` for verbatim prompts
 | 2 | **Systems Thinker** | Strict JSON | `thought_log`, `second_order_effects[]`, `unintended_consequences[]` |
 | 3 | **Pre-Mortem Risk Strategist** | Strict JSON | `insufficient_context`, `insufficient_context_details`, `thought_log`, `risk_clusters[]` |
 | 4 | **Red Teamer (Devil's Advocate)** | Strict JSON | `critical[]`, `important[]`, `minor[]` |
-| 5 | **Executive Synthesizer** | Markdown | H2 sections: Executive Summary / Mental Model / Recommended Strategy / Key Tradeoffs / Watch List / Confidence & Caveats |
+| 5 | **Executive Synthesizer** | Strict JSON | `no_go_triggered`, `formatted_report` (with H2 sections: Executive Summary / Blocking Conflicts (Conditional) / Mental Model / Recommended Strategy / Key Tradeoffs / Watch List / Confidence & Caveats) |
 
 ### 3.1 Output Contract
 
-1. Personas 1–4 MUST emit a single JSON object and nothing else (no prose, no markdown fences, no preamble). The First-Principles Thinker includes a `thought_log` scratchpad at the root of the JSON for cognitive scaffolding, and tags each assumption/effect with a `confidence_level` (`HIGH`, `MEDIUM`, or `LOW`). The orchestrator validates with Pydantic (or equivalent) and treats validation failures as empty payloads. To prevent parser crashes during external tool invocation (e.g., `builder-mcp`), prompts must instruct the agent to run in Schema-Only Mode, strictly suppressing thoughts, preambles, or markdown fences outside the JSON object.
-2. Persona 5 MUST emit Markdown only (no JSON wrapping, no fences around the entire response).
+1. Personas 1–5 MUST emit a single JSON object and nothing else (no prose, no markdown fences, no preamble). The First-Principles Thinker includes a `thought_log` scratchpad at the root of the JSON for cognitive scaffolding, and tags each assumption/effect with a `confidence_level` (`HIGH`, `MEDIUM`, or `LOW`). The orchestrator validates with Pydantic (or equivalent) and treats validation failures as empty payloads. To prevent parser crashes during external tool invocation (e.g., `builder-mcp`), prompts must instruct the agent to run in Schema-Only Mode, strictly suppressing thoughts, preambles, or markdown fences outside the JSON object.
+2. Persona 5's JSON object contains `no_go_triggered` (boolean) and `formatted_report` (string).
 3. List items in personas 1 and 2 are bounded (3–7 per list) but have no word count constraints. Persona 3 is bounded up to 7 risk clusters with no minimum floor.
 4. Persona 4's three lists may each be empty. To prevent token-pressure collision and observation eviction, there is no hard limit on the total number of items, but focus should be on high-signal findings. Persona 4 MUST prioritize carrying over all unaddressed critical issues from prior iterations over introducing new minor/important observations. On the final iteration (turn 3), unresolved critical issues must be prefixed with `[UNRESOLVED CONFLICT]` to signal persistent deadlock to the Synthesizer. Items must point to a SPECIFIC upstream artifact, not generic critique.
-5. Persona 5's required H2 sections must appear in the listed order with the exact header text.
+5. Persona 5's `formatted_report` contains exact H2 sections in order: Executive Summary, Blocking Conflicts (mandatory only if `no_go_triggered` is true), Mental Model, Recommended Strategy, Key Tradeoffs, Watch List, and Confidence & Caveats. Bullet count constraints in the report are relaxed (e.g., 1-3 bullets for Mental Model based on available signal) to prevent forced hallucinations.
 6. The First-Principles Thinker prompt abstracts tool implementations, specifying functional capabilities (e.g. "internal search and documentation tools") rather than hardcoding names, and enforces at least one non-technical constraint (economics, psychology, etc.) to prevent perspective homogenization. Bedrock is defined to include socio-technical primitives like human incentives and institutional inertia.
 7. **Context Optimization**: To minimize token consumption and maximize efficiency across all LLM systems, the orchestrator MUST strip the `thought_log` reasoning scratchpad field from the upstream JSON payloads before feeding them as context to downstream personas. The `thought_log` is strictly reserved for human review/UI rendering and is not required for downstream agent context.
 
@@ -103,6 +103,7 @@ first_principles → systems_thinker → pre_mortem → red_team
    - Red Teamer displays critique items categorized under red, orange, and green severity boxes.
 6. The completed session layout is vertical: the Synthesis and Deliberation History tabs appear at the top, and a divider separates the Deep-Dive Chat section situated directly below them. The chat history is displayed inside a scrollable, height-bounded container (`height=500`) with the input bar pinned at the bottom.
 7. After deliberation completes, a Deep-Dive Chat panel appears with a model selector. Default model: `claude-opus-4.7` if using kiro; the equivalent Opus 4.x or Sonnet 4.x for `claude`; the latest Gemini Pro thinking model for `gemini`.
+8. If `no_go_triggered` is true, the UI MUST render a prominent alert banner at the top of the final strategy view indicating a "NO-GO / NOT RECOMMENDED" status.
 
 ### 5.3 Resume
 
