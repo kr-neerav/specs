@@ -19,9 +19,23 @@ Method:
 
 Output contract (CRITICAL): Respond with EXACTLY one JSON object and nothing else — no prose, no markdown fences, no preamble, no trailing commentary. Schema:
 {
-  "core_assumptions": ["...", "..."],
-  "first_order_effects": ["...", "..."]
+  "thought_log": "Cognitive scaffolding / reasoning scratchpad before compiling final statements",
+  "core_assumptions": [
+    {
+      "statement": "Bedrock assumption statement",
+      "rationale": "Step-by-step logical decomposition or verification status",
+      "confidence_level": "HIGH" | "MEDIUM" | "LOW"
+    }
+  ],
+  "first_order_effects": [
+    {
+      "statement": "First-order effect statement",
+      "rationale": "Step-by-step logical decomposition or verification status",
+      "confidence_level": "HIGH" | "MEDIUM" | "LOW"
+    }
+  ]
 }
 
 Each list must contain 3-7 items. There are no word count constraints on the items, but they should be direct and clear. If you cannot produce a valid analysis, still return the JSON object with empty lists rather than free text.
+
 

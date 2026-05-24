@@ -22,7 +22,7 @@ The system runs five personas in this order (see `prompts/` for verbatim prompts
 |---|---|---|---|
 | 1 | **First-Principles Thinker** | Strict JSON | `thought_log`, `core_assumptions[]` (with `confidence_level`), `first_order_effects[]` (with `confidence_level`) |
 | 2 | **Systems Thinker** | Strict JSON | `thought_log`, `second_order_effects[]`, `unintended_consequences[]` |
-| 3 | **Pre-Mortem Risk Strategist** | Strict JSON | `failure_modes[]`, `mitigation_strategies[]` (index-aligned) |
+| 3 | **Pre-Mortem Risk Strategist** | Strict JSON | `insufficient_context`, `insufficient_context_details`, `thought_log`, `risk_clusters[]` |
 | 4 | **Red Teamer (Devil's Advocate)** | Strict JSON | `critical[]`, `important[]`, `minor[]` |
 | 5 | **Executive Synthesizer** | Markdown | H2 sections: Executive Summary / Mental Model / Recommended Strategy / Key Tradeoffs / Watch List / Confidence & Caveats |
 
@@ -30,10 +30,12 @@ The system runs five personas in this order (see `prompts/` for verbatim prompts
 
 1. Personas 1–4 MUST emit a single JSON object and nothing else (no prose, no markdown fences, no preamble). The First-Principles Thinker includes a `thought_log` scratchpad at the root of the JSON for cognitive scaffolding, and tags each assumption/effect with a `confidence_level` (`HIGH`, `MEDIUM`, or `LOW`). The orchestrator validates with Pydantic (or equivalent) and treats validation failures as empty payloads — the deliberation continues but downstream personas receive less context.
 2. Persona 5 MUST emit Markdown only (no JSON wrapping, no fences around the entire response).
-3. List items in personas 1–3 are bounded (3–7 per list) but have no word count constraints.
+3. List items in personas 1 and 2 are bounded (3–7 per list) but have no word count constraints. Persona 3 is bounded up to 7 risk clusters with no minimum floor.
 4. Persona 4's three lists may each be empty. Total items across all three: 2–8. Items must point to a SPECIFIC upstream artifact, not generic critique.
 5. Persona 5's required H2 sections must appear in the listed order with the exact header text.
 6. The First-Principles Thinker prompt abstracts tool implementations, specifying functional capabilities (e.g. "internal search and documentation tools") rather than hardcoding names, and enforces at least one non-technical constraint (economics, psychology, etc.) to prevent perspective homogenization. Bedrock is defined to include socio-technical primitives like human incentives and institutional inertia.
+7. **Context Optimization**: To minimize token consumption and maximize efficiency across all LLM systems, the orchestrator MUST strip the `thought_log` reasoning scratchpad field from the upstream JSON payloads before feeding them as context to downstream personas. The `thought_log` is strictly reserved for human review/UI rendering and is not required for downstream agent context.
+
 
 ### 3.2 Persona Prompts (CLI-agnostic)
 
@@ -97,7 +99,7 @@ first_principles → systems_thinker → pre_mortem → red_team
 5. The deliberation history tab displays agent outputs formatted cleanly (no raw JSON):
    - First Principles displays the `thought_log` scratchpad in an expander, followed by assumptions/effects tagged with color-coded confidence pills (🟢, 🟡, 🔴).
    - Systems Thinker displays the `thought_log` in an expander, followed by second-order effects and unintended consequences grouped by temporal horizon (Immediate, Delayed, Generational), displaying their causal mechanisms and highlighting any primitive failures.
-   - Pre-Mortem displays failure modes paired with mitigations side-by-side.
+   - Pre-Mortem displays a warning if context is insufficient, a `thought_log` expander, and failure modes paired with their lists of mitigations.
    - Red Teamer displays critique items categorized under red, orange, and green severity boxes.
 6. The completed session layout is vertical: the Synthesis and Deliberation History tabs appear at the top, and a divider separates the Deep-Dive Chat section situated directly below them. The chat history is displayed inside a scrollable, height-bounded container (`height=500`) with the input bar pinned at the bottom.
 7. After deliberation completes, a Deep-Dive Chat panel appears with a model selector. Default model: `claude-opus-4.7` if using kiro; the equivalent Opus 4.x or Sonnet 4.x for `claude`; the latest Gemini Pro thinking model for `gemini`.
@@ -149,6 +151,8 @@ The system MUST allow the user to choose which LLM CLI provider to use. Three pr
 2. **Claude**: each persona is invoked by passing the prompt as the system prompt (`claude --system-prompt-file prompts/01-…md` or equivalent). Tool use (e.g., web search) configured via Anthropic's tool-use API if needed.
 3. **Gemini**: each persona is invoked with the prompt as the system instruction. Tool use configured via Gemini's tool/function-calling API.
 4. The prompts MUST NOT depend on any provider-specific feature beyond strict-JSON or structured-output guidance.
+5. **Model Tiering**: To optimize cost and latency, the orchestration architecture supports provider-agnostic model tiering. Instead of running all personas on a single expensive reasoning model, the orchestrator can route simpler structured tasks (First-Principles, Pre-Mortem, Executive Synthesis) to faster, cheaper 'Flash-tier' models (e.g. Gemini Flash, Claude Haiku, Kiro Haiku), while reserving the highly capable 'Pro-tier' models (e.g. Gemini Pro, Claude Sonnet/Opus, Kiro Sonnet/Opus) for complex reasoning tasks (Systems Thinker, Red Teamer).
+
 
 ### 7.4 Tool Access (Internal Grounding)
 
