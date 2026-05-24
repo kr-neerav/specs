@@ -91,11 +91,11 @@ first_principles → systems_thinker → pre_mortem → red_team
 
 1. The UI runs in three modes:
    - `new`: blank slate; user enters a problem, optional file attachments (text/code files only), and clicks Run. Uploaded files are parsed and appended to the problem under a `### Supporting Documents` section.
-   - `running`: the graph streams node-by-node; each persona's output renders in a beautified (non-JSON) format as soon as it's parsed; the session is persisted incrementally.
+   - `running`: the graph streams node-by-node; each persona's output renders in a beautified (non-JSON) format as soon as it's parsed; the session is persisted incrementally. The metrics strip updates dynamically in real-time to show intermediate credits and compute time as each step completes.
    - `view`: a completed (or partial) session is displayed; the user can read the deliberation and start a deep-dive chat.
 2. The sidebar MUST list every saved session as a clickable card showing title, timestamp, ID, severity-count badges (🔴N 🟠N 🟢N), credits total, and chat-message count. Clicking a card loads it into `view` mode.
 3. Below the title in `view` mode, the original problem statement and any attached files are rendered in a collapsible expander: `📝 Original Problem Statement & Context`.
-4. The metrics strip across the top of `view` mode shows: kiro/LLM credits, call count, compute time, iterations, latest critique severity counts, and chat message count.
+4. The metrics strip across the top of `view` and `running` modes shows: kiro/LLM credits, compute time, iterations, and chat message count. During deliberation execution, these metrics MUST update incrementally and in real-time as each individual agent finishes running.
 5. The deliberation history tab displays agent outputs formatted cleanly (no raw JSON):
    - First Principles displays the `thought_log` scratchpad in an expander, followed by assumptions/effects tagged with color-coded confidence pills (🟢, 🟡, 🔴).
    - Systems Thinker displays the `thought_log` in an expander, followed by second-order effects and unintended consequences grouped by temporal horizon (Immediate, Delayed, Generational), displaying their causal mechanisms and highlighting any primitive failures.
@@ -115,6 +115,7 @@ first_principles → systems_thinker → pre_mortem → red_team
 2. Each call appends an entry to `Session.credits_log`: `{agent, model, credits, duration_seconds, ts, phase}` where `phase` ∈ `{deliberation, deep_dive, summarizer}`.
 3. Helpers MUST aggregate: total credits, total duration, per-agent breakdown.
 4. The sidebar shows a "lifetime credits" metric across all sessions.
+5. Telemetry aggregations MUST update the UI incrementally as steps finish, allowing immediate visibility of resource usage before the final strategy is fully synthesized.
 
 ## 7. LLM CLI Choice
 
