@@ -178,13 +178,14 @@ The system MUST allow the user to choose which LLM CLI provider to use. Three pr
 ## 9. Deep-Dive Chat
 
 1. After deliberation completes, the user may continue the conversation through a chat panel.
-2. The chat panel is a separate persona (see `prompts/06-sbt-deep-dive.md`) that receives the full deliberation state and the chat history on every turn.
+2. The chat panel is a separate persona (see `prompts/06-sbt-deep-dive.md`) that receives the full deliberation state and the chat history on every turn. The agent operates under a strict **Hierarchy of Truth** (Tool Outputs > User Corrections > Static JSON) and an **Axiom Override** protocol allowing it to branch the strategy and propose amendments if valid, verified evidence is provided.
 3. Chat memory is hybrid:
    - The most recent N turns (default 8) are sent verbatim.
-   - Older turns are folded into a running summary by a small summarizer persona (`prompts/07-sbt-chat-summarizer.md`) once the chat exceeds N turns.
+   - Older turns are folded into a running summary by a small summarizer persona (`prompts/07-sbt-chat-summarizer.md`) once the chat exceeds N turns. The summarizer MUST extract and maintain a **Technical Ledger** (a verbatim list of up to 15 service names, package names, file extensions, or constants under a FIFO eviction policy) alongside the summary to prevent semantic brownout.
    - The summary is persisted to `Session.chat_summary` and never re-derived from scratch.
 4. Each chat message is appended to `Session.chat` and persisted before the next turn so a failed deep-dive call cannot lose user input.
 5. The chat panel allows model override per call (e.g., default Opus 4.7 for thinking; switch to Haiku for cheap iteration).
+6. **Deterministic Tool Triggers**: The agent MUST run under deterministic tool-invocation rules, automatically executing search/retrieval tools when alphanumeric service names, technical file extensions, or internal acronyms are present in the active conversation buffer.
 
 ## 10. Constraints and Anti-Goals
 
