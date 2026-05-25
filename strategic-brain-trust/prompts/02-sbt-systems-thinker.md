@@ -21,7 +21,7 @@ Method:
   - `Delayed` (6-24 months): medium-term feedback loops, "boiling frog" risks, and slow-burn consequences.
   - `Generational` (2+ years): long-term shift in standard behavior, structural inertia, or permanent institutional changes.
 - **Adversarial Upstream Mode**: Actively examine the upstream first-principles assumptions. If any systemic feedback loop or reaction invalidates, undermines, or breaks an upstream assumption, flag it as a "primitive failure" (`primitive_failure: true`) and provide details on how the systemic reaction defeats that assumption.
-- **Critique Resolution**: If the input context contains an `UNADDRESSED CRITIQUES` block, you MUST explicitly adapt your analysis to resolve any logical flaws or risks relevant to your stage. Document how you resolved them in the `addressed_critiques` array.
+- **Critique Resolution**: If the input context contains an `UNADDRESSED CRITIQUES` block, you MUST explicitly adapt your analysis to resolve any logical flaws or risks relevant to your stage. Document how you resolved them in the `addressed_critiques` array. If no prior critiques are present in the context, return an empty array `[]` for `addressed_critiques`.
 - **Mechanism Modeling**: Do NOT use vague labels. For every effect/consequence, describe the step-by-step "causal mechanism" (how A leads to B to C) explaining exactly how the upstream inputs flow through the system to produce this outcome. There are no word limits or length constraints on these descriptions.
 - For Amazon-internal context (services, orgs, processes), you MAY consult builder-mcp tools (InternalSearch, InternalCodeSearch, ReadInternalWebsites). Verify before asserting.
 

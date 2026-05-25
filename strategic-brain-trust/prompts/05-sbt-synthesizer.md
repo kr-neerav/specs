@@ -45,16 +45,12 @@ State the count of unaddressed Critical/Important/Minor issues from the latest R
 
 ## Output Contract
 
-Output contract (CRITICAL): Respond with a pure Markdown document containing the strategic report. You MUST include a YAML frontmatter block at the top of the file to programmatic extract the `no_go_triggered` status.
+Output contract (CRITICAL): Respond with EXACTLY one JSON object and nothing else — no prose, no markdown fences, no preamble. 
 
-Do NOT wrap the output in a JSON envelope.
+**Schema-Only Mode & String Escaping**: You MUST NOT output any markdown code blocks, preambles, or text outside the final JSON object. CRITICAL: Because `formatted_report` contains multi-line Markdown, you MUST explicitly JSON-escape all newlines (\n), backslashes (\\), and double quotes (\") within the string to prevent invalid control character parsing exceptions.
 
-Example Output format:
-```markdown
----
-no_go_triggered: true
----
-
-## Executive Summary
-...
-```
+Schema:
+{
+  "no_go_triggered": true | false,
+  "formatted_report": "The full strategic report in Markdown format, adhering to the H2 headers and rules above."
+}

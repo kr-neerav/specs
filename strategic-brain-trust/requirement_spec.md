@@ -28,7 +28,7 @@ The system runs five personas in this order (see `prompts/` for verbatim prompts
 
 ### 3.1 Output Contract
 
-1. Personas 1–5 MUST emit a single JSON object and nothing else (no prose, no markdown fences, no preamble). The First-Principles Thinker includes a `thought_log` scratchpad at the root of the JSON for cognitive scaffolding, tags each assumption/effect with a `confidence_level` (`HIGH`, `MEDIUM`, or `LOW`), and logs resolutions of prior critiques in `addressed_critiques` (list of strings). The orchestrator validates with Pydantic (or equivalent) and treats validation failures as empty payloads. To prevent parser crashes during external tool invocation (e.g., `builder-mcp`), prompts must instruct the agent to run in Schema-Only Mode, strictly suppressing thoughts, preambles, conversational tool narration, or markdown fences outside the JSON object.
+1. Personas 1–5 MUST emit a single JSON object and nothing else (no prose, no markdown fences, no preamble). The First-Principles Thinker includes a `thought_log` scratchpad at the root of the JSON for cognitive scaffolding, tags each assumption/effect with a `confidence_level` (`HIGH`, `MEDIUM`, or `LOW`), and logs resolutions of prior critiques in `addressed_critiques` (list of strings). The orchestrator validates with Pydantic (or equivalent) and treats validation failures on control-flow nodes (like Red Teamer) as critical errors requiring automated retries. If validation fails three times, the system MUST raise a fatal exception to abort the pipeline, preventing silent approval. To prevent parser crashes during external tool invocation (e.g., `builder-mcp`), prompts must instruct the agent to run in Schema-Only Mode, strictly suppressing thoughts, preambles, conversational tool narration, or markdown fences outside the JSON object.
 2. Persona 5's JSON object contains `no_go_triggered` (boolean) and `formatted_report` (string). It triggers `no_go_triggered: true` if the latest Red Team pass has `"has_unresolved_criticals": true` or if a fatal flaw is discovered.
 3. List items in personas 1 and 2 are bounded (3–7 per list) but have no word count constraints. Persona 3 is bounded up to 7 risk clusters with no minimum floor.
 4. Persona 4's lists may each be empty. To prevent token-pressure collision and observation eviction, there is no hard limit on the total number of items, but focus should be on high-signal findings. Persona 4 MUST prioritize carrying over all unaddressed critical issues from prior iterations over introducing new minor/important observations. Persona 4 MUST output `"has_unresolved_criticals": true` if there are any critical issues. On the final iteration (turn 3), unresolved critical issues must be documented, prefixed with `[UNRESOLVED CONFLICT]`, and `"has_unresolved_criticals"` set to `true` to signal persistent deadlock to the Synthesizer. Items must point to a SPECIFIC upstream artifact, not generic critique.
@@ -171,7 +171,8 @@ The system MUST allow the user to choose which LLM CLI provider to use. Three pr
 
 1. The orchestrator MUST be implemented as a state machine with the following nodes: `first_principles`, `systems_thinker`, `pre_mortem`, `red_team`, `synthesizer`.
 2. Edges: linear from `first_principles` → `synthesizer`, with one conditional edge after `red_team` that returns to `first_principles` per the re-loop rule in §4.1.
-   - **Clarification HITL Pause**: If `pre_mortem` outputs `"insufficient_context": true`, the orchestrator MUST immediately halt the state machine, suspend the loop counter, and prompt the human user for clarification (Human-in-the-Loop) before proceeding.
+   - **Clarification HITL Pause**: If `pre_mortem` outputs `"insufficient_context": true`, the orchestrator MUST immediately halt the state machine, suspend the loop counter, and prompt the human user for clarification (Human-in-the-Loop).
+   - **HITL Resumption Edge**: Once human clarification is received, the orchestrator MUST append the input to `input_data`, clear the current iteration's intermediate JSON states, and execute a hard rewind back to the `first_principles` node.
 3. The state schema (Pydantic / TypedDict / equivalent) must include:
    - `input_data: str` — original problem.
    - `first_principles_analysis`, `systems_analysis`, `risk_analysis`: each persona's validated output dict.
@@ -181,7 +182,18 @@ The system MUST allow the user to choose which LLM CLI provider to use. Three pr
 4. Each persona node MUST persist its result to the session file before returning, so a crash mid-run leaves a partial-but-valid session that the UI can still display.
 5. The orchestrator MUST act as a generator (yielding events like `(persona_name, output_data)`) to allow the UI to consume and render the outputs incrementally as the state machine progresses.
 
-## 9. Deep-Dive Chat
+## 9. Deep-Dive Subsystems
+
+During the deep-dive chat, two background processes execute sequentially on every turn:
+
+### 9.1 Chat Summarizer (Persona 7)
+- **Role**: Maintains a rolling 300-word context summary of the conversation.
+- **Execution**: Runs first.
+
+### 9.2 Project Dictionary Extractor (Persona 8)
+- **Role**: Extracts new architectural entities introduced by the user.
+- **Execution**: Runs sequentially after the Summarizer. The LLM only extracts newly discovered entities. The Python orchestrator natively handles merging, deduplication, FIFO slicing (capping transient items to 15), and decay.
+- **Cross-Pinning Decay**: If a transient entity was cross-pinned but falls out of the active 300-word chat summary, the Python orchestrator MUST automatically downgrade it to `pinned: false` so it re-enters the FIFO queue.
 
 1. After deliberation completes, the user may continue the conversation through a chat panel.
 2. The chat panel is a separate persona (see `prompts/06-sbt-deep-dive.md`) that receives the full deliberation state, the decoupled Project Dictionary, and the chat history on every turn. The agent operates under a strict **Hierarchy of Truth** (Tool Outputs > User Corrections > Static JSON) and an **Axiom Override** protocol allowing it to branch the strategy and propose amendments if valid, verified evidence is provided.
