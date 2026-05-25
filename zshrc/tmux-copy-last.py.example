@@ -12,7 +12,7 @@ def main():
     lines = result.stdout.rstrip().split('\n')
 
     # The robbyrussell Zsh theme prompt always starts with '➜'
-    prompt_indices = [i for i, line in enumerate(lines) if line.startswith('➜')]
+    prompt_indices = [i for i, line in enumerate(lines) if '➜' in line or line.startswith('❯')]
 
     if len(prompt_indices) < 2:
         print("Could not find previous command output in terminal history.", file=sys.stderr)

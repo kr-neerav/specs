@@ -21,7 +21,7 @@ This specification details custom extensions for the Zsh environment tailored fo
 2. When a user runs `clast`, the environment must capture the output of the *immediately preceding* command without re-executing that command.
 3. **Tmux Buffer Scraping**: To achieve this without re-execution, `clast` must invoke a script that:
    - Connects to the active Tmux session's screen buffer (`tmux capture-pane -pS -2000`).
-   - Searches backwards through the text to find the last two instances of the user's shell prompt indicator (e.g., `➜`).
+   - Searches backwards through the text to find the last two instances of the user's shell prompt indicator. The script must handle prompts where the indicator (`➜`) is not at the start of the line (e.g., conda/env prefixes like `[none] (base) ➜  ~`). Match on the presence of the character anywhere in the line, not just `startswith`.
    - Extracts all printed text between the second-to-last prompt (the original command) and the last prompt (the `clast` invocation itself).
 4. The extracted text must be piped directly to the system clipboard.
 5. A success message must be printed to the terminal.
@@ -33,18 +33,26 @@ This specification details custom extensions for the Zsh environment tailored fo
 4. The function must:
    - Concatenate all arguments passed to it as the user message.
    - Invoke `kiro-cli chat --no-interactive --trust-all-tools --agent zshrc-ask "$*"`.
-   - Strip ANSI escape sequences from kiro-cli's stdout (kiro-cli decorates output with color codes that would otherwise confuse delimiter matching).
+   - Strip ANSI escape sequences and the leading `> ` prompt prefix from kiro-cli's stdout (kiro-cli decorates output with color codes and a `> ` prefix on each line that would otherwise confuse delimiter matching).
    - Use `awk` to extract the command and explanation between `===CMD===`/`===/CMD===` and `===EXP===`/`===/EXP===` markers respectively. The closing delimiters MUST include a leading slash so the close tag is textually distinct from the open tag — without that, the model paraphrases (e.g., emitting `<<<ENDCMD>>>` instead of `<<<END_CMD>>>`) cause silent extraction failures. Underscored markers like `___CMD_START___` are also forbidden because some kiro-cli display paths render them as Markdown horizontal rules.
 5. The generated command and the brief explanation must be printed cleanly to the terminal for the user to visually review and understand.
 6. Only the generated command must be simultaneously piped to the system clipboard (via `pbcopy`) so it is instantly ready to paste and execute without dragging the explanation along.
 7. On extraction failure (e.g., the model deviates from the delimiter contract), the function must print an error and dump the first 400 characters of the raw kiro-cli stdout for debugging — never silently fail.
 
-### 2.4 Clear-Screen Alias (`cl`)
+### 2.4 Last Output to Ask (`asklast`)
+1. Provide a shell function named `asklast`.
+2. When a user runs `asklast <optional question>`, the environment must:
+   - Capture the previous command's output from the tmux buffer (same mechanism as `clast`).
+   - Pass that output as context to the `ask` function along with any additional arguments the user provided.
+3. If no output is found in the buffer, print an error and return non-zero.
+4. Example usage: `asklast what went wrong` — grabs the last command's output and asks the LLM to explain it in context of the user's question.
+
+### 2.5 Clear-Screen Alias (`cl`)
 1. Provide a shell alias named `cl` that runs `clear`.
 2. The alias serves as a two-character shortcut for clearing the terminal screen — strictly cosmetic, no other behavior.
 3. If the existing `~/.zshrc` already defines `cl` for another purpose, the implementation must overwrite or remove the prior definition so `cl` unambiguously means "clear screen."
 
 ## 3. Reference Files
 - `zshrc_snippet.sh.example`: Contains the exact shell functions and aliases to append to the end of `~/.zshrc`.
-- `tmux-copy-last.py.example`: The Python script required to fulfill the Tmux buffer scraping capability. This should be placed in `~/.local/bin/tmux-copy-last` and made executable.
+- `tmux-copy-last.py.example`: The Python script required to fulfill the Tmux buffer scraping capability. This should be placed in `~/.local/bin/tmux-copy-last` and made executable. Note: prompt detection matches `➜` anywhere in the line (not just start) to handle conda/env prefixes, and also matches `❯` for starship-style prompts.
 - `ask-agent.json.example`: The kiro-cli agent definition powering §2.3 (`ask`). Install by copying to `~/.kiro/agents/zshrc-ask.json`, then verify with `kiro-cli agent list | grep zshrc-ask`.

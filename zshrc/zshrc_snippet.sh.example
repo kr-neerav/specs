@@ -32,8 +32,8 @@ function ask() {
     # and a trailing "Credits: X.XX" footer.
     local raw="$(kiro-cli chat --no-interactive --trust-all-tools --agent zshrc-ask "$*" 2>/dev/null)"
 
-    # Strip ANSI escape sequences so awk can match plain delimiter strings.
-    local response="$(printf '%s' "$raw" | LC_ALL=C sed -E 's/\x1b\[[0-9;?]*[A-Za-z]//g; s/\r//g')"
+    # Strip ANSI escape sequences and leading '> ' prompt prefix so awk can match plain delimiter strings.
+    local response="$(printf '%s' "$raw" | LC_ALL=C sed -E 's/\x1b\[[0-9;?]*[A-Za-z]//g; s/\r//g; s/^> //')"
 
     # Extract command + explanation. The closing delimiter is `===/CMD===` —
     # the leading slash makes it textually distinct from the opening one so
@@ -59,7 +59,19 @@ function ask() {
     echo -e "\n\033[0;32m[Command ONLY copied to clipboard! Ready to paste.]\033[0m"
 }
 
-# 4. 'cl' alias — short shortcut for `clear`.
+# 4. 'asklast' function
+# Grabs the previous command's output from the tmux buffer and feeds it to `ask`.
+# Usage: asklast what went wrong
+function asklast() {
+    local output="$(python3 ~/.local/bin/tmux-copy-last)"
+    if [ -z "$output" ]; then
+        echo -e "\033[0;31mNo previous command output found.\033[0m"
+        return 1
+    fi
+    ask "given this terminal output: $output — $*"
+}
+
+# 5. 'cl' alias — short shortcut for `clear`.
 # If your existing ~/.zshrc has `cl` aliased to something else, remove that
 # prior definition first so this one wins unambiguously.
 alias cl='clear'
