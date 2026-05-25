@@ -143,7 +143,10 @@ The system MUST allow the user to choose which LLM CLI provider to use. Three pr
 2. Each adapter implementation handles:
    - The provider's specific CLI invocation (`claude --print`, `gemini -p`, `kiro-cli chat --no-interactive --agent <name>`).
    - ANSI escape stripping in stdout.
-   - JSON extraction (find the first balanced `{...}` object; fall back to empty payload on failure).
+   - JSON extraction:
+     * For CLI command wrappers, extract the first/outermost balanced `{...}` object to isolate the CLI payload.
+     * For the LLM response within the payload, extract the last balanced `{...}` object (while skipping scanning inside successfully parsed JSON blocks to prevent matching inner nested properties) to handle preceding conversational narration or tool output.
+     * Fall back to an empty payload on failure.
    - Telemetry parsing (regex match on the provider's footer format).
    - Workspace cwd for any provider that resolves agents from a workspace directory.
 
