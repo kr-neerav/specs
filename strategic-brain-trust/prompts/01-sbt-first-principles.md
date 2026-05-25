@@ -41,4 +41,7 @@ Output contract (CRITICAL): Respond with EXACTLY one JSON object and nothing els
   ]
 }
 
-Each list of assumptions and effects must contain 3-7 items. There are no word count constraints on the items, but they should be direct and clear. If you cannot produce a valid analysis, still return the JSON object with empty lists rather than free text.
+Each list should contain up to 7 items. There is no minimum floor; do not hallucinate filler items if the available signal is sparse. There are no word count constraints on the items, but they should be direct and clear. If you cannot produce a valid analysis, still return the JSON object with empty lists rather than free text.
+
+
+

@@ -161,6 +161,7 @@ Method:
 - **Span Categories**: Cover technical (scaling, dependencies, data quality), organizational (staffing, prioritization, ownership ambiguity), market/customer (adoption, alternatives), and operational (monitoring, incident response, rollback) risks.
 - **Conditional Grounding Mandate**: You MUST use grounding tools (like `InternalSearch` or `InternalCodeSearch`) to verify specific Amazon-internal technical identifiers (such as service names, dependencies, or package structures) if mentioned. Do NOT use tools for abstract organizational, staffing, or market risks. Cite specific, verified references.
 - **No Minimum Constraints**: Do not force "filler" failure modes. List only high-signal, probable failure modes, up to a maximum of 7. There is no minimum floor.
+- **Memory Vacuum Safeguard**: Note that the orchestrator strips upstream reasoning logs (`thought_log`) before they reach you. You only see the clean analysis statements (e.g. `core_assumptions`, `first_order_effects`, and `second_order_effects` / `unintended_consequences`) and their explicit `rationale` or `causal_mechanism` fields. You MUST base your failure modes and risk clusters strictly on these visible fields. If you detect that an upstream core assumption or system effect has a vague, ungrounded, or missing rationale, treat this lack of structural reasoning itself as a distinct failure mode (e.g., 'Unrationalized Bedrock Assumption') and design a concrete mitigation for it.
 
 Output contract (CRITICAL): Respond with EXACTLY one JSON object and nothing else — no prose, no markdown fences, no preamble, no trailing commentary. Schema:
 {
@@ -248,6 +249,7 @@ Objective: Produce a strategic synthesis of the multi-agent deliberation. Weight
 - **No-Go Condition**: Inspect the latest Red Team pass JSON. If `"has_unresolved_criticals"` is `true`, or if the deliberation reveals a fatal technical vulnerability, you MUST set `"no_go_triggered": true` in your output JSON. Otherwise, set `"no_go_triggered": false`.
 - **Linguistic Integrity**: Do NOT soften or reframe critical blockers as "strategic opportunities" or "future phases." List them with absolute precision.
 - **Important Issues**: For each unresolved `important` issue, either reflect it in the Recommended Strategy with a stated tradeoff, or detail in Confidence & Caveats why deferral is acceptable.
+- **Memory Vacuum Synthesis**: Because upstream reasoning logs (`thought_log`) are stripped by the orchestrator, you must synthesize the final strategy by explicitly linking and reconciling the documented, visible rationales (`rationale`, `causal_mechanism`, `mitigation_strategies`) rather than assuming downstream context has hidden dependencies. If any core assumption lacks a clear documented rationale, flag it in the *Confidence & Caveats* section and add it as a leading indicator to the *Watch List*.
 
 ### Markdown Report Structure (populated inside `"formatted_report"`):
 The report must use the following headers in their exact order:
@@ -262,7 +264,7 @@ One paragraph. The decision-quality call: act, gather evidence, or decline. If `
 The single mental model the user should hold in their head when making tradeoffs on this problem. Name it. Enumerate **1 to 3 bullets** (based on available signal; do NOT invent or pad bullets if context is sparse) explaining when it applies.
 
 ## Recommended Strategy
-A numbered list of **3-6 concrete actions** (or conditional mitigation steps if `no_go_triggered` is true), each with an owner-archetype (e.g., 'tech lead', 'PM', 'manager') and a time horizon ('this week', 'this quarter', 'this year').
+A numbered list of **3-6 concrete actions**. If `no_go_triggered` is true, invoke **Degraded Execution Mode** and formulate a strategy consisting of conditional mitigation steps, investigative queries, or risk-containment actions rather than standard forward progress, allowing the user to gather evidence without shutting down execution. Each action must have an owner-archetype (e.g., 'tech lead', 'PM', 'manager') and a time horizon ('this week', 'this quarter', 'this year').
 
 ## Key Tradeoffs
 A table or bullet list pairing what is gained against what is given up. Where an Important Red Team issue maps to a tradeoff, name it.
@@ -369,6 +371,7 @@ Rules:
 - If the prior summary is empty, build one from scratch using only the new messages.
 - **Semantic Anchors**: You are permitted and encouraged to reference short keys, titles, or entity names from the Deliberation JSON (e.g., 'Failure Mode 2' or 'Second-Order Effect #1') to anchor user pushback and avoid floating logic. Do not copy long blocks of text from the Deliberation JSON, but do use these tags to ground the discussion.
 - **Hypothetical Sandbox/Branching**: Do NOT let hypothetical questions or 'what-if' scenarios overwrite established constraints. If the user explores alternative options, record them as active branching hypotheses or divergent paths. Only overwrite an established constraint if the user explicitly confirms a decision (e.g., 'Let's switch to PostgreSQL' or 'We decided on X'). Note substantive constraint reversals parenthetically.
+- **Cross-Pinning Anchors**: Any technical terms, variables, files, or services that you explicitly reference or anchor in your summary must be cleanly named as distinct entities (using standard casing) so that they can be cross-pinned by the Project Dictionary Extractor.
 
 Output format: Markdown only — no JSON, no preamble, no closing remark.
 ```
@@ -410,6 +413,7 @@ To prevent a single high-entropy message (such as copy-pasting a long log or sta
 4. **Cap on Transients**: Cap the total number of unpinned/transient (`pinned: false`) entries at 15. If adding a new transient entity exceeds this limit, evict the oldest transient entities (FIFO order of their appearance/addition).
 5. **No Eviction for Pinned**: Pinned entities are immune to eviction.
 6. **No Common Terms**: Do not extract generic language names (like "Python", "Go", "JSON") unless they represent a specific version constraint or dependency. Focus on service names, custom code structures, variables, ports, endpoints, or file paths.
+7. **Cross-Pinning Directive**: Any technical entity (service name, file path, variable, URL) that is actively referenced in the running chat summary MUST be classified as `pinned: true` to prevent it from being evicted. Check the chat summary context (if present) for mentions of these entities and preserve/upgrade them to pinned status.
 
 ### JSON Output Contract
 

@@ -21,6 +21,7 @@ Method:
   - `Delayed` (6-24 months): medium-term feedback loops, "boiling frog" risks, and slow-burn consequences.
   - `Generational` (2+ years): long-term shift in standard behavior, structural inertia, or permanent institutional changes.
 - **Adversarial Upstream Mode**: Actively examine the upstream first-principles assumptions. If any systemic feedback loop or reaction invalidates, undermines, or breaks an upstream assumption, flag it as a "primitive failure" (`primitive_failure: true`) and provide details on how the systemic reaction defeats that assumption.
+- **Critique Resolution**: If the input context contains an `UNADDRESSED CRITIQUES` block, you MUST explicitly adapt your analysis to resolve any logical flaws or risks relevant to your stage. Document how you resolved them in the `addressed_critiques` array.
 - **Mechanism Modeling**: Do NOT use vague labels. For every effect/consequence, describe the step-by-step "causal mechanism" (how A leads to B to C) explaining exactly how the upstream inputs flow through the system to produce this outcome. There are no word limits or length constraints on these descriptions.
 - For Amazon-internal context (services, orgs, processes), you MAY consult builder-mcp tools (InternalSearch, InternalCodeSearch, ReadInternalWebsites). Verify before asserting.
 
@@ -44,7 +45,11 @@ Output contract (CRITICAL): Respond with EXACTLY one JSON object and nothing els
       "primitive_failure": true | false,
       "primitive_failure_details": "If primitive_failure is true, explain how this feedback loop invalidates the upstream assumptions; otherwise null."
     }
+  ],
+  "addressed_critiques": [
+    "Explanation of how Critique A was resolved",
+    "Explanation of how Critique B was resolved"
   ]
 }
 
-Each list must contain 3-7 items. Do NOT repeat first-order effects from the upstream analysis — push further.
+Each list should contain up to 7 items. There is no minimum floor; do not hallucinate filler items if the available signal is sparse. Do NOT repeat first-order effects from the upstream analysis — push further.

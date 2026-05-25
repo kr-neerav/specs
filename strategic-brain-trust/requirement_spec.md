@@ -44,8 +44,9 @@ The verbatim system prompts live in `prompts/01-…` through `prompts/05-…`. T
 
 - The original problem (`PROBLEM:\n…`).
 - The upstream personas' validated JSON outputs as context blocks.
+- The current loop iteration count (e.g., "Current Iteration: 2 of 3").
 - For persona 4 on a re-loop pass: the prior `red_team_critique` history, with explicit instructions not to downgrade still-unaddressed Critical issues.
-- For persona 1 on a re-loop pass: an `UNADDRESSED CRITIQUES` block listing every Critical (and Importants flagged optional) from the prior Red Team pass.
+- For personas 1, 2, and 3 on a re-loop pass: an `UNADDRESSED CRITIQUES` block listing every Critical (and Importants flagged optional) from the prior Red Team pass.
 
 ## 4. Workflow
 
@@ -170,6 +171,7 @@ The system MUST allow the user to choose which LLM CLI provider to use. Three pr
 
 1. The orchestrator MUST be implemented as a state machine with the following nodes: `first_principles`, `systems_thinker`, `pre_mortem`, `red_team`, `synthesizer`.
 2. Edges: linear from `first_principles` → `synthesizer`, with one conditional edge after `red_team` that returns to `first_principles` per the re-loop rule in §4.1.
+   - **Clarification Abort**: If `pre_mortem` outputs `"insufficient_context": true`, the orchestrator MUST immediately short-circuit to the `synthesizer`, bypassing `red_team` and the re-loop, as internal agents cannot magically resolve missing user input.
 3. The state schema (Pydantic / TypedDict / equivalent) must include:
    - `input_data: str` — original problem.
    - `first_principles_analysis`, `systems_analysis`, `risk_analysis`: each persona's validated output dict.

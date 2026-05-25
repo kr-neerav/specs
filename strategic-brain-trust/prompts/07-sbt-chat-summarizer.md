@@ -35,3 +35,4 @@ Rules:
 - **Cross-Pinning Anchors**: Any technical terms, variables, files, or services that you explicitly reference or anchor in your summary must be cleanly named as distinct entities (using standard casing) so that they can be cross-pinned by the Project Dictionary Extractor.
 
 Output format: Markdown only — no JSON, no preamble, no closing remark.
+

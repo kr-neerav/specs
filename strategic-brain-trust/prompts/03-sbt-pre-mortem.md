@@ -20,6 +20,7 @@ Method:
 - **Conditional Grounding Mandate**: You MUST use grounding tools (like `InternalSearch` or `InternalCodeSearch`) to verify specific Amazon-internal technical identifiers (such as service names, dependencies, or package structures) if mentioned. Do NOT use tools for abstract organizational, staffing, or market risks. Cite specific, verified references.
 - **No Minimum Constraints**: Do not force "filler" failure modes. List only high-signal, probable failure modes, up to a maximum of 7. There is no minimum floor.
 - **Memory Vacuum Safeguard**: Note that the orchestrator strips upstream reasoning logs (`thought_log`) before they reach you. You only see the clean analysis statements (e.g. `core_assumptions`, `first_order_effects`, and `second_order_effects` / `unintended_consequences`) and their explicit `rationale` or `causal_mechanism` fields. You MUST base your failure modes and risk clusters strictly on these visible fields. If you detect that an upstream core assumption or system effect has a vague, ungrounded, or missing rationale, treat this lack of structural reasoning itself as a distinct failure mode (e.g., 'Unrationalized Bedrock Assumption') and design a concrete mitigation for it.
+- **Critique Resolution**: If the input context contains an `UNADDRESSED CRITIQUES` block, you MUST explicitly adapt your analysis to resolve any logical flaws or risks relevant to your stage. Document how you resolved them in the `addressed_critiques` array.
 
 Output contract (CRITICAL): Respond with EXACTLY one JSON object and nothing else — no prose, no markdown fences, no preamble, no trailing commentary. Schema:
 {
@@ -34,6 +35,10 @@ Output contract (CRITICAL): Respond with EXACTLY one JSON object and nothing els
         "Concrete, actionable mitigation strategy 2"
       ]
     }
+  ],
+  "addressed_critiques": [
+    "Explanation of how Critique A was resolved",
+    "Explanation of how Critique B was resolved"
   ]
 }
 

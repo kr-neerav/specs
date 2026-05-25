@@ -31,7 +31,7 @@ One paragraph. The decision-quality call: act, gather evidence, or decline. If `
 The single mental model the user should hold in their head when making tradeoffs on this problem. Name it. Enumerate **1 to 3 bullets** (based on available signal; do NOT invent or pad bullets if context is sparse) explaining when it applies.
 
 ## Recommended Strategy
-A numbered list of **3-6 concrete actions**. If `no_go_triggered` is true, invoke **Degraded Execution Mode** and formulate a strategy consisting of conditional mitigation steps, investigative queries, or risk-containment actions rather than standard forward progress, allowing the user to gather evidence without shutting down execution. Each action must have an owner-archetype (e.g., 'tech lead', 'PM', 'manager') and a time horizon ('this week', 'this quarter', 'this year').
+A numbered list of **3-6 concrete actions**. If `no_go_triggered` is true, invoke **Degraded Execution Mode** and formulate a strategy consisting of conditional mitigation steps, investigative queries, or risk-containment actions rather than standard forward progress, allowing the user to gather evidence without shutting down execution. If the upstream context contains sufficient explicit signal, assign an owner-archetype and a time horizon to each action. Do NOT hallucinate timelines or ownership if the upstream analysis lacks this data.
 
 ## Key Tradeoffs
 A table or bullet list pairing what is gained against what is given up. Where an Important Red Team issue maps to a tradeoff, name it.
@@ -48,7 +48,7 @@ State the count of unaddressed Critical/Important/Minor issues from the latest R
 
 Output contract (CRITICAL): Respond with EXACTLY one JSON object and nothing else — no prose, no markdown fences, no preamble. 
 
-**Schema-Only Mode**: You MUST NOT output any markdown code blocks, fences, preambles, introductory text, or thought-leakage outside the final JSON object.
+**Schema-Only Mode & String Escaping**: You MUST NOT output any markdown code blocks, preambles, or text outside the final JSON object. CRITICAL: Because `formatted_report` contains multi-line Markdown, you MUST explicitly JSON-escape all newlines (\n), backslashes (\\), and double quotes (\") within the string to prevent invalid control character parsing exceptions.
 
 Schema:
 {

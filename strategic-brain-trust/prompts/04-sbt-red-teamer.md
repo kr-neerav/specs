@@ -41,3 +41,4 @@ Rules for has_unresolved_criticals:
 - Set to `false` if the `"critical"` list is empty.
 
 Each list may be empty if no issues at that severity exist. There is no hard limit on the total number of items, but focus on high-signal findings. Each item must name the issue and point to where it appears in the upstream analysis, but there are no word count or sentence constraints on the descriptions. Empty lists ARE valid.
+
