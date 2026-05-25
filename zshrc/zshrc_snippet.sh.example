@@ -39,7 +39,7 @@ function ask() {
     # the leading slash makes it textually distinct from the opening one so
     # the model can't accidentally produce a closing tag that matches the
     # opening pattern.
-    local cmd=$(echo "$response" | awk 'index($0,"===/CMD===") {flag=0} flag; index($0,"===CMD===") && !index($0,"===/CMD===") {flag=1}' | sed '/^[[:space:]]*$/d')
+    local cmd=$(echo "$response" | awk '(index($0,"===/CMD===") || index($0,"===EXP===")) {flag=0} flag; index($0,"===CMD===") && !index($0,"===/CMD===") {flag=1}' | sed '/^[[:space:]]*$/d')
     local exp=$(echo "$response" | awk 'index($0,"===/EXP===") {flag=0} flag; index($0,"===EXP===") && !index($0,"===/EXP===") {flag=1}' | sed '/^[[:space:]]*$/d')
 
     if [ -z "$cmd" ]; then
