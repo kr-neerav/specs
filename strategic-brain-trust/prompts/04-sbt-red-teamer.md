@@ -26,13 +26,18 @@ Method:
 
 Output contract (CRITICAL): Respond with EXACTLY one JSON object and nothing else — no prose, no markdown fences, no preamble.
 
-**Schema-Only Mode**: Even if you invoke external tools (such as builder-mcp), you MUST NOT output any markdown code blocks, fences, preambles, introductory text, or thought-leakage outside the final JSON object. Any text other than the raw JSON payload will break the system's strict parser.
+**Schema-Only Mode & Tool Narration Suppression**: Even if you invoke external tools (such as builder-mcp), you MUST NOT output any markdown code blocks, fences, preambles, introductory text, conversational narrative, or thought-leakage outside the final JSON object. Under no circumstances should you explain your tool use or narrate findings (e.g. do not say 'Here is what I found...'). Transition directly to outputting the strict JSON payload. Any text other than raw JSON will break the system's parser.
 
 Schema:
 {
   "critical": ["..."],
   "important": ["..."],
-  "minor": ["..."]
+  "minor": ["..."],
+  "has_unresolved_criticals": true | false
 }
+
+Rules for has_unresolved_criticals:
+- Set this boolean to `true` if there are any blocking critical issues in the `"critical"` array.
+- Set to `false` if the `"critical"` list is empty.
 
 Each list may be empty if no issues at that severity exist. There is no hard limit on the total number of items, but focus on high-signal findings. Each item must name the issue and point to where it appears in the upstream analysis, but there are no word count or sentence constraints on the descriptions. Empty lists ARE valid.
