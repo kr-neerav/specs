@@ -13,23 +13,25 @@ By splitting the task into deterministic data collection (Bash/AppleScript), lig
 graph TD
     A[macOS System Events] -->|Polls frontmost app & window title every 30s| B(local_tracker.sh)
     B -->|Logs dynamically to YYYY-MM-DD.csv| C[(Logs Storage Folder)]
-    C -->|Reads target date log file| D(parser.py)
-    D -->|Generates Time Summary| E[1. Quantitative Summary]
+    C -->|Reads target date log files (wildcard)| D(parser.py)
+    D -->|Generates Time Summary & Charts| E[1. Visual Markdown Report]
+    
+    H[Slack Communications txt] -.-> D
+    I[Outlook Communications txt] -.-> D
     
     E --> F[Local LLM Synthesis]
     G[2. LLM Agent Interactions Summary] --> F
-    H[3. Slack Communications Summary] --> F
-    I[4. Outlook Communications Summary] --> F
     
     F -->|Applies Revised Prompt| J[Staff-Level Retrospective]
 ```
 
 ### Key Highlights
 * **Zero Data Exfiltration**: Runs completely within the local CPU/GPU and storage boundaries. No external network requests are made.
+* **Cross-Device Syncing**: The parser aggregates all logs for a target date (e.g., `YYYY-MM-DD_home.csv` and `YYYY-MM-DD_office.csv`), making it seamless to track time across multiple laptops using a shared cloud folder.
+* **Rich Visual Reports**: The parser outputs a Markdown report embedding generated charts (Active Minutes, Context Switches) and auto-appends optional Slack/Outlook summaries.
 * **Deterministic Arithmetic**: Offloads statistical aggregation to Python/Pandas instead of relying on the LLM's weak arithmetic capabilities.
 * **Defined Storage Path**: Daily logs are stored in a dedicated folder: `/Users/neerav/Documents/Projects/time_tracker/daily_log`.
 * **Daily Log Rotation**: The logging script dynamically switches to a new file named `YYYY-MM-DD.csv` at midnight, eliminating the need for a separate log rotation daemon.
-* **Cross-Reference Capability**: Synthesizes passive activity logging with qualitative communication & research summaries to evaluate Staff-level impact versus low-level busywork.
 * **Minimal Resource Footprint**: The background bash tracker sleeps between polls, consuming near-zero CPU cycles.
 
 ---
@@ -133,9 +135,13 @@ This Python script aggregates a target date's log file. It defaults to analyzing
 ```python
 import os
 import sys
+import glob
 import datetime
 from urllib.parse import urlparse
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # DEFINED STORAGE PATH: Directory where daily log CSVs are stored
 LOG_DIR = "/Users/neerav/Documents/Projects/time_tracker/daily_log"
@@ -149,7 +155,6 @@ def extract_domain(url):
     if not isinstance(url, str) or pd.isna(url) or url.strip() in ('N/A', ''):
         return 'N/A'
     try:
-        # Prepend scheme if missing (e.g. "github.com" instead of "https://github.com")
         if not url.startswith(('http://', 'https://', 'file://', 'chrome://', 'about:')):
             url = 'https://' + url
         parsed = urlparse(url)
@@ -161,61 +166,60 @@ def extract_domain(url):
         return 'N/A'
 
 def main():
-    # Default to today's date, or use the date specified via command-line argument
     if len(sys.argv) > 1:
         target_date = sys.argv[1]
     else:
         target_date = datetime.date.today().strftime("%Y-%m-%d")
 
-    log_file = os.path.join(LOG_DIR, f"{target_date}.csv")
+    log_files = glob.glob(os.path.join(LOG_DIR, f"{target_date}*.csv"))
 
-    if not os.path.exists(log_file):
-        print(f"Error: Log file for date '{target_date}' not found at {log_file}", file=sys.stderr)
-        print("Please check that the date is correct and the tracker is running.", file=sys.stderr)
+    if not log_files:
+        print(f"Error: No log files for date '{target_date}' found in {LOG_DIR}", file=sys.stderr)
         sys.exit(1)
 
-    try:
-        df = pd.read_csv(log_file)
-    except pd.errors.EmptyDataError:
-        print(f"Warning: The log file {log_file} is empty. No data to parse.", file=sys.stderr)
+    df_list = []
+    for log_file in log_files:
+        try:
+            temp_df = pd.read_csv(log_file)
+            df_list.append(temp_df)
+        except pd.errors.EmptyDataError:
+            continue
+        except Exception as e:
+            print(f"Error reading {log_file}: {e}", file=sys.stderr)
+            
+    if not df_list:
+        print(f"Warning: Log files for {target_date} are empty or invalid.", file=sys.stderr)
         sys.exit(0)
-    except Exception as e:
-        print(f"Error reading {log_file}: {e}", file=sys.stderr)
-        sys.exit(1)
+        
+    df = pd.concat(df_list, ignore_index=True)
 
     if df.empty:
-        print(f"No log data recorded for {target_date} yet. Please run the tracker for a few minutes first.")
+        print(f"No log data recorded for {target_date} yet.")
         sys.exit(0)
 
-    # Clean column names in case of leading/trailing whitespace
     df.columns = df.columns.str.strip()
 
-    # Backwards-compatibility for older CSV schemas without URL column
     if 'URL' not in df.columns:
         df['URL'] = 'N/A'
 
-    # Calculate minutes spent for each entry
     df['Minutes'] = MINUTES_PER_RECORD
 
-    # Filter out lock screen, login window, and screensaver events (historical/fallback check)
     lock_screen_apps = ['loginwindow', 'ScreenSaverEngine', 'SecurityAgent']
     df = df[~df['Application'].isin(lock_screen_apps)]
 
-    # Extract domains for browsers
+    # Filter out idle/empty window records
+    df = df[df['WindowTitle'] != 'No Active Window']
+
     df['Domain'] = df['URL'].apply(extract_domain)
 
-    # Aggregate time spent per application
     app_summary = df.groupby('Application')['Minutes'].sum().sort_values(ascending=False)
 
-    # Aggregate time spent per browser domain (filtering out non-browser or N/A URLs)
     browser_df = df[df['Domain'] != 'N/A']
     domain_summary = browser_df.groupby('Domain')['Minutes'].sum().sort_values(ascending=False).head(10)
 
-    # Isolate deep-dive window details for context (e.g., top Slack channels or IDE files)
     top_windows = df.groupby(['Application', 'WindowTitle'])['Minutes'].sum().reset_index()
     top_windows = top_windows.sort_values(by='Minutes', ascending=False).head(20)
 
-    # Format the outputs nicely
     print("=" * 45)
     print(f"=== DAILY TIME BREAKDOWN FOR {target_date} ===")
     print("=" * 45)
@@ -231,6 +235,104 @@ def main():
     print("=== TOP SPECIFIC CONTEXTS ===")
     print("=" * 45)
     print(top_windows.to_string(index=False))
+
+    slack_file = os.path.join(LOG_DIR, f"{target_date}_slack.txt")
+    outlook_file = os.path.join(LOG_DIR, f"{target_date}_outlook.txt")
+    
+    if os.path.exists(slack_file):
+        print("\n" + "=" * 45)
+        print("=== SLACK MESSAGES SUMMARY ===")
+        print("=" * 45)
+        with open(slack_file, 'r') as f:
+            print(f.read().strip())
+            
+    if os.path.exists(outlook_file):
+        print("\n" + "=" * 45)
+        print("=== OUTLOOK SENT MESSAGES SUMMARY ===")
+        print("=" * 45)
+        with open(outlook_file, 'r') as f:
+            print(f.read().strip())
+
+    # --- Generate Visualizations and Markdown Report ---
+    try:
+        df['Timestamp'] = pd.to_datetime(df['Timestamp'])
+        df = df.sort_values('Timestamp')
+        df['Hour'] = df['Timestamp'].dt.hour
+        
+        hourly_active = df.groupby('Hour').size() * MINUTES_PER_RECORD
+        
+        df['prev_app'] = df['Application'].shift(1)
+        df['prev_title'] = df['WindowTitle'].shift(1)
+        switches = (df['Application'] != df['prev_app']) | (df['WindowTitle'] != df['prev_title'])
+        switches.iloc[0] = False
+        hourly_switches = df[switches].groupby('Hour').size()
+        
+        hours = np.arange(24)
+        active_arr = np.zeros(24)
+        switch_arr = np.zeros(24)
+        for h, v in hourly_active.items():
+            active_arr[h] = v
+        for h, v in hourly_switches.items():
+            switch_arr[h] = v
+            
+        sns.set_theme(style="whitegrid")
+        
+        plt.figure(figsize=(10, 5))
+        plt.bar(hours, active_arr, color='#4c72b0')
+        plt.xlabel('Hour of Day (24h)')
+        plt.ylabel('Active Minutes')
+        plt.title(f'Active Minutes per Hour - {target_date}')
+        plt.xticks(hours)
+        plt.tight_layout()
+        active_img_path = os.path.join(LOG_DIR, f"{target_date}_active_minutes.png")
+        plt.savefig(active_img_path)
+        plt.close()
+        
+        plt.figure(figsize=(10, 5))
+        plt.bar(hours, switch_arr, color='#dd8452')
+        plt.xlabel('Hour of Day (24h)')
+        plt.ylabel('Number of Context Switches')
+        plt.title(f'Context Switches per Hour - {target_date}')
+        plt.xticks(hours)
+        plt.tight_layout()
+        switch_img_path = os.path.join(LOG_DIR, f"{target_date}_context_switches.png")
+        plt.savefig(switch_img_path)
+        plt.close()
+        
+        md_content = f"# 📊 Time Tracking & Workflow Analysis - {target_date}\n\n"
+        md_content += "## ⏱️ Active Minutes by Hour\n"
+        md_content += f"![Active Minutes]({target_date}_active_minutes.png)\n\n"
+        md_content += "## 🔀 Context Switching Analysis\n"
+        md_content += f"![Context Switches]({target_date}_context_switches.png)\n\n"
+        
+        md_content += "## 💻 App Breakdown\n```text\n"
+        md_content += app_summary.to_string() + "\n```\n\n"
+        
+        if not domain_summary.empty:
+            md_content += "## 🌐 Top Web Domains\n```text\n"
+            md_content += domain_summary.to_string() + "\n```\n\n"
+            
+        md_content += "## 🔍 Top Specific Contexts\n```text\n"
+        md_content += top_windows.to_string(index=False) + "\n```\n\n"
+        
+        if os.path.exists(slack_file):
+            md_content += "## 💬 Slack Messages\n```text\n"
+            with open(slack_file, 'r') as f:
+                md_content += f.read().strip() + "\n```\n\n"
+                
+        if os.path.exists(outlook_file):
+            md_content += "## 📧 Outlook Sent Messages\n```text\n"
+            with open(outlook_file, 'r') as f:
+                md_content += f.read().strip() + "\n```\n\n"
+                
+        report_path = os.path.join(LOG_DIR, f"{target_date}_report.md")
+        with open(report_path, 'w') as f:
+            f.write(md_content)
+            
+        print(f"\n[+] Successfully generated visual Markdown report at: {report_path}")
+        
+    except Exception as e:
+        print(f"\n[-] Failed to generate visualizations/markdown: {e}", file=sys.stderr)
 
 if __name__ == "__main__":
     main()
@@ -290,9 +392,9 @@ Draft a concise, 3-bullet standup update summarizing today's actual focus. Use t
 ### Step 2: Running the Parser
 1. Save the python code as `parser.py`.
 2. Ensure you have the `pandas` library installed:
-   ```bash
-   pip install pandas
-   ```
+    ```bash
+    pip install pandas matplotlib seaborn numpy
+    ```
 3. Run the script at the end of the day to parse today's logs:
    ```bash
    python parser.py
