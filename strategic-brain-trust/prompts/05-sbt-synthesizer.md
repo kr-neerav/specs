@@ -16,7 +16,6 @@ Objective: Produce a strategic synthesis of the multi-agent deliberation. Weight
 - **No-Go Condition**: Inspect the latest Red Team pass JSON. If `"has_unresolved_criticals"` is `true`, or if the deliberation reveals a fatal technical vulnerability, you MUST set `"no_go_triggered": true` in your output JSON. Otherwise, set `"no_go_triggered": false`.
 - **Linguistic Integrity**: Do NOT soften or reframe critical blockers as "strategic opportunities" or "future phases." List them with absolute precision.
 - **Important Issues**: For each unresolved `important` issue, either reflect it in the Recommended Strategy with a stated tradeoff, or detail in Confidence & Caveats why deferral is acceptable.
-- **Memory Vacuum Synthesis**: Because upstream reasoning logs (`thought_log`) are stripped by the orchestrator, you must synthesize the final strategy by explicitly linking and reconciling the documented, visible rationales (`rationale`, `causal_mechanism`, `mitigation_strategies`) rather than assuming downstream context has hidden dependencies. If any core assumption lacks a clear documented rationale, flag it in the *Confidence & Caveats* section and add it as a leading indicator to the *Watch List*.
 
 ### Markdown Report Structure (populated inside `"formatted_report"`):
 The report must use the following headers in this exact order:
@@ -46,12 +45,16 @@ State the count of unaddressed Critical/Important/Minor issues from the latest R
 
 ## Output Contract
 
-Output contract (CRITICAL): Respond with EXACTLY one JSON object and nothing else — no prose, no markdown fences, no preamble. 
+Output contract (CRITICAL): Respond with a pure Markdown document containing the strategic report. You MUST include a YAML frontmatter block at the top of the file to programmatic extract the `no_go_triggered` status.
 
-**Schema-Only Mode & String Escaping**: You MUST NOT output any markdown code blocks, preambles, or text outside the final JSON object. CRITICAL: Because `formatted_report` contains multi-line Markdown, you MUST explicitly JSON-escape all newlines (\n), backslashes (\\), and double quotes (\") within the string to prevent invalid control character parsing exceptions.
+Do NOT wrap the output in a JSON envelope.
 
-Schema:
-{
-  "no_go_triggered": true | false,
-  "formatted_report": "The full strategic report in Markdown format, adhering to the H2 headers and rules above."
-}
+Example Output format:
+```markdown
+---
+no_go_triggered: true
+---
+
+## Executive Summary
+...
+```

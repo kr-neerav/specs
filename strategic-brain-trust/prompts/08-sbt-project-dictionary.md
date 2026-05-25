@@ -30,7 +30,7 @@ To prevent a single high-entropy message (such as copy-pasting a long log or sta
    - `pinned` (boolean): Whether it is core (true) or transient (false).
    - `source` (string): Where it was first mentioned (e.g., "problem statement", "deliberation", "chat").
 2. **No Duplicates**: Treat entity names case-insensitively when checking duplicates, but preserve their canonical casing.
-3. **Preservation & Downgrade**: Core architectural entities MUST remain pinned permanently. However, transient entities upgraded to pinned solely due to the Cross-Pinning Directive MUST be downgraded to `pinned: false` once they no longer appear in the active chat summary, subjecting them to standard FIFO eviction.
+3. **Preservation & Indefinite Pinning**: Core architectural entities MUST remain pinned indefinitely. Transient entities upgraded to pinned solely due to the Cross-Pinning Directive MUST also remain pinned indefinitely until an explicit `Unpin` command is invoked by the user or system.
 4. **Cap on Transients**: Cap the total number of unpinned/transient (`pinned: false`) entries at 15. If adding a new transient entity exceeds this limit, evict the oldest transient entities (FIFO order of their appearance/addition).
 5. **No Eviction for Pinned**: Pinned entities are immune to eviction.
 6. **No Common Terms**: Do not extract generic language names (like "Python", "Go", "JSON") unless they represent a specific version constraint or dependency. Focus on service names, custom code structures, variables, ports, endpoints, or file paths.

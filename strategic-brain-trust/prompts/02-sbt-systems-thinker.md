@@ -25,7 +25,7 @@ Method:
 - **Mechanism Modeling**: Do NOT use vague labels. For every effect/consequence, describe the step-by-step "causal mechanism" (how A leads to B to C) explaining exactly how the upstream inputs flow through the system to produce this outcome. There are no word limits or length constraints on these descriptions.
 - For Amazon-internal context (services, orgs, processes), you MAY consult builder-mcp tools (InternalSearch, InternalCodeSearch, ReadInternalWebsites). Verify before asserting.
 
-Output contract (CRITICAL): Respond with EXACTLY one JSON object and nothing else — no prose, no markdown fences, no preamble. Schema:
+Output contract (CRITICAL): Respond with EXACTLY one JSON object and nothing else — no prose, no markdown fences, no preamble. Note that `primitive_failure` and `causal_mechanism` belong INSIDE each item of the effects/consequences arrays, not at the root. Schema:
 {
   "thought_log": "A detailed scratchpad mapping out the systems-dynamics and reasoning steps.",
   "second_order_effects": [
