@@ -95,7 +95,7 @@ first_principles → systems_thinker → pre_mortem → red_team
    - `new`: blank slate; user enters a problem, optional file attachments (text/code files only), and clicks Run. Uploaded files are parsed and appended to the problem under a `### Supporting Documents` section.
    - `running`: the graph streams node-by-node; each persona's output renders in a beautified (non-JSON) format as soon as it's parsed; the session is persisted incrementally. The metrics strip updates dynamically in real-time to show intermediate credits and compute time as each step completes.
    - `view`: a completed (or partial) session is displayed; the user can read the deliberation and start a deep-dive chat.
-2. The sidebar MUST list every saved session as a clickable card showing title, timestamp, ID, severity-count badges (🔴N 🟠N 🟢N), credits total, and chat-message count. Clicking a card loads it into `view` mode.
+2. The sidebar MUST list saved sessions. The "Recent Sessions" list MUST be paginated (10 sessions per page) with navigation controls. Each clickable card shows title, timestamp, ID, severity-count badges (🔴N 🟠N 🟢N), credits total, and chat-message count. Clicking a card loads it into `view` mode.
 3. Below the title in `view` mode, the original problem statement and any attached files are rendered in a collapsible expander: `📝 Original Problem Statement & Context`.
 4. The metrics strip across the top of `view` and `running` modes shows: kiro/LLM credits, compute time, iterations, and chat message count. During deliberation execution, these metrics MUST update incrementally and in real-time as each individual agent finishes running.
 5. The deliberation history tab displays agent outputs formatted cleanly (no raw JSON):
@@ -106,6 +106,7 @@ first_principles → systems_thinker → pre_mortem → red_team
 6. The completed session layout is vertical: the Synthesis and Deliberation History tabs appear at the top, and a divider separates the Deep-Dive Chat section situated directly below them. The chat history is displayed inside a scrollable, height-bounded container (`height=500`) with the input bar pinned at the bottom.
 7. After deliberation completes, a Deep-Dive Chat panel appears with a model selector. Default model: `claude-opus-4.7` if using kiro; the equivalent Opus 4.x or Sonnet 4.x for `claude`; the latest Gemini Pro thinking model for `gemini`.
 8. If `no_go_triggered` is true, the UI MUST render a prominent alert banner at the top of the final strategy view indicating a "NO-GO / NOT RECOMMENDED" status.
+9. The default Streamlit "Deploy" button in the top right corner MUST be hidden via CSS injection (`.stAppDeployButton {display:none;}`).
 
 ### 5.3 Resume
 
