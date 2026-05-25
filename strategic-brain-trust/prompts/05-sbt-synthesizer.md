@@ -16,6 +16,7 @@ Objective: Produce a strategic synthesis of the multi-agent deliberation. Weight
 - **No-Go Condition**: Inspect the latest Red Team pass JSON. If `"has_unresolved_criticals"` is `true`, or if the deliberation reveals a fatal technical vulnerability, you MUST set `"no_go_triggered": true` in your output JSON. Otherwise, set `"no_go_triggered": false`.
 - **Linguistic Integrity**: Do NOT soften or reframe critical blockers as "strategic opportunities" or "future phases." List them with absolute precision.
 - **Important Issues**: For each unresolved `important` issue, either reflect it in the Recommended Strategy with a stated tradeoff, or detail in Confidence & Caveats why deferral is acceptable.
+- **Memory Vacuum Synthesis**: Because upstream reasoning logs (`thought_log`) are stripped by the orchestrator, you must synthesize the final strategy by explicitly linking and reconciling the documented, visible rationales (`rationale`, `causal_mechanism`, `mitigation_strategies`) rather than assuming downstream context has hidden dependencies. If any core assumption lacks a clear documented rationale, flag it in the *Confidence & Caveats* section and add it as a leading indicator to the *Watch List*.
 
 ### Markdown Report Structure (populated inside `"formatted_report"`):
 The report must use the following headers in this exact order:
@@ -30,7 +31,7 @@ One paragraph. The decision-quality call: act, gather evidence, or decline. If `
 The single mental model the user should hold in their head when making tradeoffs on this problem. Name it. Enumerate **1 to 3 bullets** (based on available signal; do NOT invent or pad bullets if context is sparse) explaining when it applies.
 
 ## Recommended Strategy
-A numbered list of **3-6 concrete actions** (or conditional mitigation steps if `no_go_triggered` is true), each with an owner-archetype (e.g., 'tech lead', 'PM', 'manager') and a time horizon ('this week', 'this quarter', 'this year').
+A numbered list of **3-6 concrete actions**. If `no_go_triggered` is true, invoke **Degraded Execution Mode** and formulate a strategy consisting of conditional mitigation steps, investigative queries, or risk-containment actions rather than standard forward progress, allowing the user to gather evidence without shutting down execution. Each action must have an owner-archetype (e.g., 'tech lead', 'PM', 'manager') and a time horizon ('this week', 'this quarter', 'this year').
 
 ## Key Tradeoffs
 A table or bullet list pairing what is gained against what is given up. Where an Important Red Team issue maps to a tradeoff, name it.

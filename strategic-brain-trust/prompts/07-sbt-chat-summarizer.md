@@ -32,5 +32,6 @@ Rules:
 - If the prior summary is empty, build one from scratch using only the new messages.
 - **Semantic Anchors**: You are permitted and encouraged to reference short keys, titles, or entity names from the Deliberation JSON (e.g., 'Failure Mode 2' or 'Second-Order Effect #1') to anchor user pushback and avoid floating logic. Do not copy long blocks of text from the Deliberation JSON, but do use these tags to ground the discussion.
 - **Hypothetical Sandbox/Branching**: Do NOT let hypothetical questions or 'what-if' scenarios overwrite established constraints. If the user explores alternative options, record them as active branching hypotheses or divergent paths. Only overwrite an established constraint if the user explicitly confirms a decision (e.g., 'Let's switch to PostgreSQL' or 'We decided on X'). Note substantive constraint reversals parenthetically.
+- **Cross-Pinning Anchors**: Any technical terms, variables, files, or services that you explicitly reference or anchor in your summary must be cleanly named as distinct entities (using standard casing) so that they can be cross-pinned by the Project Dictionary Extractor.
 
 Output format: Markdown only — no JSON, no preamble, no closing remark.

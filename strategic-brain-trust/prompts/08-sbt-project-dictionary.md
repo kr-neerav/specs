@@ -33,6 +33,7 @@ To prevent a single high-entropy message (such as copy-pasting a long log or sta
 4. **Cap on Transients**: Cap the total number of unpinned/transient (`pinned: false`) entries at 15. If adding a new transient entity exceeds this limit, evict the oldest transient entities (FIFO order of their appearance/addition).
 5. **No Eviction for Pinned**: Pinned entities are immune to eviction.
 6. **No Common Terms**: Do not extract generic language names (like "Python", "Go", "JSON") unless they represent a specific version constraint or dependency. Focus on service names, custom code structures, variables, ports, endpoints, or file paths.
+7. **Cross-Pinning Directive**: Any technical entity (service name, file path, variable, URL) that is actively referenced in the running chat summary MUST be classified as `pinned: true` to prevent it from being evicted. Check the chat summary context (if present) for mentions of these entities and preserve/upgrade them to pinned status.
 
 ### JSON Output Contract
 
