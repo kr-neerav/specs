@@ -1,6 +1,6 @@
-# Architecture Specification: Leadership & Mechanisms Brain Trust
+# Architecture Specification: Leadership Brain Trust
 
-**Version:** 4.0 (Final Stack & Feature Parity)
+**Version:** 4.1 (Final Stack & Feature Parity)
 **Target User:** Staff/Principal (L6/L7) Engineering Leadership
 **Environment:** Node.js (Express) + React (Vite) + Bash CLI + SQLite3 + `gemini` CLI
 **Topology:** Dynamic Iterative Multi-Agent System (MAS)
@@ -93,6 +93,7 @@ The frontend is built as a Single Page Application (SPA) providing real-time vis
 * **Sidebar Container:** Displays a paginated list of past sessions (10 per page), sorted chronologically with precise timestamps.
 * **Features:** Includes a real-time text search filter (searching titles and original proposals), session deletion capabilities, and a "Hide/Show" toggle to collapse the sidebar for full-screen focus.
 * **Dynamic Renaming:** Sessions are auto-titled by an LLM upon creation, but users can edit the title inline via a pencil icon.
+* **Token Telemetry:** Each historic session card natively calculates and renders a dynamic `🪙 X` badge, summing the API token consumption across the original execution loop and any subsequent deep dive chats.
 
 ### 4.2 Main Workspace & Real-time Transparency
 * **Live State Tracking:** Status badges (`✅ Completed` or a dynamic, animated CSS pulsing dot indicating active processing) poll the backend dynamically to reflect the Bash script's progress.
