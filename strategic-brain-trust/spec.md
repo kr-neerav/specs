@@ -1,6 +1,6 @@
 # Architecture Specification: Leadership Brain Trust
 
-**Version:** 4.1 (Final Stack & Feature Parity)
+**Version:** 5.0 (Multi-Persona Architecture)
 **Target User:** Staff/Principal (L6/L7) Engineering Leadership
 **Environment:** Node.js (Express) + React (Vite) + Bash CLI + SQLite3 + `gemini` CLI
 **Topology:** Dynamic Iterative Multi-Agent System (MAS)
@@ -23,7 +23,7 @@ The system relies on a **Push (Payload) Strategy**. Agents do not have direct da
 
 ### 2.1 Backend Architecture
 * **API Gateway:** A Node.js Express server (`server.js`) handles REST API endpoints for the frontend (`GET /api/sessions`, `POST /api/sessions`, `DELETE /api/sessions/:id`, `POST /api/sessions/:id/chat`, etc.).
-* **Subprocess Spawning:** When a new session is started, Node.js uses `child_process.exec` to fire off the `execution_loop.sh` bash script in the background.
+* **Subprocess Spawning:** When a new session is started, Node.js uses `child_process` to trigger the orchestrator.
 * **Token Extraction:** The application uses `--output-format json` with the `gemini` CLI. Bash scripts parse the output via `jq` to extract both the generated text and the API token usage, persisting both to the database.
 
 ### 2.2 State Persistence (SQLite Schema)
@@ -36,6 +36,7 @@ CREATE TABLE brain_trust_sessions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     current_iteration INTEGER DEFAULT 1,
     original_proposal TEXT,
+    persona TEXT DEFAULT 'leadership',
     final_execution_artifact TEXT
 );
 
@@ -77,11 +78,13 @@ CREATE TABLE deep_dive_chats (
 
 Compute is optimized by utilizing the `gemini-3.1-pro-preview` model via the CLI. 
 
-* **The Orchestrator:** Routes state, summarizes agent critiques, controls the `while` loop logic via `<STATUS>` tags, and synthesizes the Final Summary and Recommendation.
-* **The Skeptic:** Analyzes proposals via Game Theory, Malicious Compliance, and Metric Manipulation.
-* **The Architect:** Identifies systemic bottlenecks, cognitive load issues, and cascading failures.
-* **The Empath:** Evaluates psychological safety, tone, and cultural health impacts.
-* **The Innovator:** Generates unconventional lateral solutions within immutable limits.
+### 3.1 Prompt Sub-Domains (Personas)
+The system now supports dynamic "Personas" that drastically alter the behavior of the agents without changing the orchestrator mechanics:
+* **Leadership & Culture (`backend/prompts/leadership/`)**: Evaluates behavior, game theory, corporate incentives, and organizational management.
+* **Technical & Architecture (`backend/prompts/technical/`)**: Evaluates CAP theorem, data races, Developer Experience (DevEx), and system scalability (Staff+ level).
+
+### 3.2 Orchestration Loop (`backend/core/execution_loop.sh`)
+* **Execution:** Sequential, avoiding Gemini API rate limits. Each agent script receives a `$PERSONA` argument to determine which prompt directory to read from. Output is strictly formatted as JSON.
 
 ---
 
@@ -96,6 +99,8 @@ The frontend is built as a Single Page Application (SPA) providing real-time vis
 * **Token Telemetry:** Each historic session card natively calculates and renders a dynamic `🪙 X` badge, summing the API token consumption across the original execution loop and any subsequent deep dive chats.
 
 ### 4.2 Main Workspace & Real-time Transparency
+* **Persona Selection:** A dropdown allows users to target their proposal either towards "Leadership" or "Technical" agents.
+* **File Uploads:** Users can natively load `.txt`, `.md`, `.csv`, and `.json` documents directly into the proposal text box via an HTML5 `FileReader`.
 * **Live State Tracking:** Status badges (`✅ Completed` or a dynamic, animated CSS pulsing dot indicating active processing) poll the backend dynamically to reflect the Bash script's progress.
 * **Iteration Blocks:** The UI renders each iteration sequentially. The Orchestrator's Synthesis is contained within a collapsible card to save vertical space.
 * **Agent Transparency Dashboard:** Inside each iteration block, a sub-dashboard displays the 4 agent critiques. These are collapsed by default. The UI explicitly renders the exact API Token cost (🪙 X Tokens) utilized by each agent per iteration.
