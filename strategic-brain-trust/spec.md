@@ -1,4 +1,4 @@
-# Architecture Specification: Leadership Brain Trust
+# Architecture Specification: Strategic Brain Trust
 
 **Version:** 5.0 (Multi-Persona Architecture)
 **Target User:** Staff/Principal (L6/L7) Engineering Leadership
