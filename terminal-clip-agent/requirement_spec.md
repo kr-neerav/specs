@@ -64,5 +64,65 @@ The tool must support two consumption models to interface with different speech-
 
 ---
 
-## 3. Reference Files
-- `stt_clipper.py`: The complete, dependency-free reference Python implementation that satisfies all the above requirements.
+## 3. Voice Commands & LLM-Powered Formatting
+
+The clip agent supports inline voice commands that trigger LLM-powered text processing before copying to clipboard. These commands are detected by prefix keywords spoken immediately after the start marker.
+
+### 3.1 Slack Message Formatting (`slack message ...`)
+
+**Trigger:** When the captured text begins with "slack message" (case-insensitive, tolerant of punctuation/pauses between words).
+
+**Behavior:**
+1. Strip the "slack message" prefix from the captured text.
+2. Send the remaining raw dictation to an LLM agent (`text-cleanup` via `kiro-cli`) with the following instructions:
+   - Fix grammar and make it concise, human-readable.
+   - Add a relevant emoji at the start of the message.
+   - If the speaker mentions including specific emojis (e.g., "include a thumbs up emoji"), replace the instruction text with the actual emoji character.
+3. Copy the LLM-formatted output to clipboard.
+4. If the LLM call fails (timeout, unavailable), fall back to copying the raw cleaned text.
+
+**Example:**
+- Spoken: `capture begin slack message hey just wanted to check in on the status of the deployment include a rocket emoji capture end`
+- Clipboard result: `🚀 Hey, just wanted to check in on the status of the deployment.`
+
+### 3.2 Format Text Utility (`format text ...`)
+
+**Trigger:** When the captured text begins with "format text" (case-insensitive, tolerant of punctuation/pauses).
+
+**Behavior:**
+1. Strip the "format text" prefix from the captured text.
+2. Send the remaining raw dictation to an LLM agent (`text-cleanup` via `kiro-cli`) with the following instructions:
+   - Fix grammar, structure, and wording so it reads clearly and professionally.
+   - Do NOT change the meaning or add any emoji.
+   - Do NOT add greetings or sign-offs.
+   - Return ONLY the corrected text.
+3. Copy the LLM-formatted output to clipboard.
+4. If the LLM call fails, fall back to copying the raw cleaned text.
+
+**Example:**
+- Spoken: `capture begin format text so basically I think we should um move the deadline to next Friday because the team needs more time to finish the integration tests capture end`
+- Clipboard result: `I think we should move the deadline to next Friday because the team needs more time to finish the integration tests.`
+
+### 3.3 LLM Agent Requirements
+
+- **Agent:** `text-cleanup` (lightweight kiro-cli agent with no MCP servers or tools)
+- **Model:** `auto` (kiro selects optimal model for the task)
+- **Invocation:** `kiro-cli chat --no-interactive --agent text-cleanup --model auto "<prompt>"`
+- **Timeout:** 60 seconds
+- **ANSI stripping:** The agent output must be stripped of ANSI escape codes and leading `>` prompt characters before use.
+- **Fallback:** On any failure (timeout, non-zero exit, empty output), the raw cleaned text is used without formatting.
+
+### 3.4 Command Priority
+
+Commands are evaluated in order:
+1. `format text` prefix → format text behavior
+2. `slack message` prefix → slack message behavior
+3. No matching prefix → plain copy (default behavior)
+
+Only the first matching command is applied.
+
+---
+
+## 4. Reference Files
+- `stt_clipper.py`: The portable, dependency-free reference Python implementation (core marker detection and clipboard logic).
+- `clip_agent.py` (in VoiceClip project): The full-featured implementation including voice commands, LLM formatting, filler word removal, and singleton locking.
