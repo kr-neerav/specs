@@ -11,28 +11,56 @@ By splitting the task into deterministic data collection (Bash/AppleScript), lig
 
 ```mermaid
 graph TD
-    A[macOS System Events] -->|Polls frontmost app & window title every 30s| B(local_tracker.sh)
-    B -->|Logs dynamically to YYYY-MM-DD.csv| C[(Logs Storage Folder)]
-    C -->|Reads target date log files (wildcard)| D(parser.py)
-    D -->|Generates Time Summary & Charts| E[1. Visual Markdown Report]
+    A[macOS System Events] -->|Polls frontmost app & window title every 30s| B(local_tracker.sh / LaunchAgent)
+    B -->|Logs dynamically to YYYY-MM-DD.csv| C[(~/.local/share/time-tracker/daily_log/)]
+    C -->|Reads target date log files| D(parser.py)
+    D -->|Generates Time Summary| E[1. Visual Markdown Report]
+    C -->|Reads CSV data| K(generate_charts.py)
+    K -->|4 PNG visualizations| C
     
-    H[Slack Communications txt] -.-> D
-    I[Outlook Communications txt] -.-> D
+    H[Slack Communications txt] -.-> L
+    I[Outlook Communications txt] -.-> L
+    G[MeshClaw Agent Worklog txt] -.-> L
+    E -.-> L
     
-    E --> F[Local LLM Synthesis]
-    G[2. LLM Agent Interactions Summary] --> F
-    
-    F -->|Applies Revised Prompt| J[Staff-Level Retrospective]
+    L(generate_retro.py) -->|kiro-cli time-retro agent| J[Staff-Level Retrospective .md]
+    J --> C
 ```
 
 ### Key Highlights
-* **Zero Data Exfiltration**: Runs completely within the local CPU/GPU and storage boundaries. No external network requests are made.
-* **Cross-Device Syncing**: The parser aggregates all logs for a target date (e.g., `YYYY-MM-DD_home.csv` and `YYYY-MM-DD_office.csv`), making it seamless to track time across multiple laptops using a shared cloud folder.
-* **Rich Visual Reports**: The parser outputs a Markdown report embedding generated charts (Active Minutes, Context Switches) and auto-appends optional Slack/Outlook summaries.
+* **Zero Data Exfiltration**: Runs completely within the local CPU/GPU and storage boundaries. The only network call is to the kiro-cli LLM agent for retrospective synthesis.
+* **Cross-Device Syncing**: The parser aggregates all logs for a target date (e.g., `YYYY-MM-DD_home.csv` and `YYYY-MM-DD_office.csv`), making it seamless to track time across multiple laptops by archiving CSVs into the shared log folder.
+* **Rich Visual Reports**: `generate_charts.py` outputs 4 PNG visualizations; `parser.py` generates a Markdown report with app/domain breakdowns.
+* **Automated Retrospective**: `generate_retro.py` synthesizes quantitative data + communication logs into a Staff-level daily retrospective via `kiro-cli`.
 * **Deterministic Arithmetic**: Offloads statistical aggregation to Python/Pandas instead of relying on the LLM's weak arithmetic capabilities.
-* **Defined Storage Path**: Daily logs are stored in a dedicated folder: `/Users/neerav/Documents/Projects/time_tracker/daily_log`.
+* **Defined Storage Path**: Daily logs are stored at `~/.local/share/time-tracker/daily_log/`. A symlink at `~/Documents/Projects/time_tracker/daily_log` provides project-level access.
 * **Daily Log Rotation**: The logging script dynamically switches to a new file named `YYYY-MM-DD.csv` at midnight, eliminating the need for a separate log rotation daemon.
 * **Minimal Resource Footprint**: The background bash tracker sleeps between polls, consuming near-zero CPU cycles.
+* **Persistent via LaunchAgent**: `com.neeravk.time-tracker.plist` starts the tracker on login and restarts it if killed.
+
+### File Layout
+```
+~/Documents/Projects/time_tracker/       # Project scripts (Kiro workspace)
+├── local_tracker.sh                     # Reference logger script
+├── parser.py                            # Quantitative report generator
+├── generate_charts.py                   # PNG visualization generator
+├── generate_retro.py                    # LLM retrospective generator
+└── daily_log -> ~/.local/share/time-tracker/daily_log/  # Symlink
+
+~/.local/share/time-tracker/daily_log/   # Actual data storage
+├── YYYY-MM-DD.csv                       # Raw activity log (auto-generated)
+├── YYYY-MM-DD_report.md                 # Parser output (generated)
+├── YYYY-MM-DD_retrospective.md          # LLM retrospective (generated)
+├── YYYY-MM-DD_active_minutes.png        # Chart (generated)
+├── YYYY-MM-DD_context_switches.png      # Chart (generated)
+├── YYYY-MM-DD_app_time.png              # Chart (generated)
+├── YYYY-MM-DD_chrome_domains.png        # Chart (generated)
+└── YYYY-MM-DD_*.txt                     # Supplementary inputs (see below)
+
+~/.local/bin/time-tracker                # Active logger (used by LaunchAgent)
+~/.kiro/agents/time-retro.json           # Kiro agent for retro synthesis
+~/Library/LaunchAgents/com.neeravk.time-tracker.plist  # Auto-start
+```
 
 ---
 
@@ -50,7 +78,7 @@ This background shell script polls macOS system events every 30 seconds to captu
 POLL_INTERVAL=30
 
 # DEFINED STORAGE PATH: Directory where daily log CSVs are stored
-LOG_DIR="/Users/neerav/Documents/Projects/time_tracker/daily_log"
+LOG_DIR="$HOME/.local/share/time-tracker/daily_log"
 
 # Ensure the log directory exists
 mkdir -p "$LOG_DIR"
@@ -144,7 +172,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # DEFINED STORAGE PATH: Directory where daily log CSVs are stored
-LOG_DIR = "/Users/neerav/Documents/Projects/time_tracker/daily_log"
+LOG_DIR = os.path.join(os.path.expanduser("~"), ".local/share/time-tracker/daily_log")
 
 # Polling interval in seconds used in local_tracker.sh
 # 30 seconds = 0.5 minutes per record
@@ -376,18 +404,23 @@ Draft a concise, 3-bullet standup update summarizing today's actual focus. Use t
 ## 🚀 Setup & Execution Guide
 
 ### Step 1: Running the Logger
-1. Save the shell script code as `local_tracker.sh`.
-2. Grant execute permissions in the terminal:
+The tracker runs as a macOS LaunchAgent that starts on login and auto-restarts if killed.
+
+**Installation:**
+1. The script lives at `~/.local/bin/time-tracker` (copy of `local_tracker.sh` with the correct `LOG_DIR`).
+2. The LaunchAgent plist is at `~/Library/LaunchAgents/com.neeravk.time-tracker.plist`.
+3. Load it:
    ```bash
-   chmod +x local_tracker.sh
+   launchctl load ~/Library/LaunchAgents/com.neeravk.time-tracker.plist
    ```
-3. Run the tracker in the background:
+4. To stop temporarily:
    ```bash
-   nohup zsh local_tracker.sh >/dev/null 2>&1 &
+   launchctl unload ~/Library/LaunchAgents/com.neeravk.time-tracker.plist
    ```
-4. **macOS Security Settings**:
-   > [!IMPORTANT]
-   > The first time you run this, macOS will ask to grant Terminal **Accessibility** permissions under *System Settings > Privacy & Security > Accessibility*. This is required for AppleScript to query window titles and active browser tabs.
+
+**macOS Security Settings**:
+> [!IMPORTANT]
+> The first time you run this, macOS will ask to grant Terminal (or the parent process) **Accessibility** permissions under *System Settings > Privacy & Security > Accessibility*. This is required for AppleScript to query window titles and active browser tabs.
 
 ### Step 2: Running the Parser
 1. Save the python code as `parser.py`.
@@ -404,15 +437,64 @@ Draft a concise, 3-bullet standup update summarizing today's actual focus. Use t
    python parser.py 2026-05-23
    ```
 
-### Step 3: Performing the Retrospective
-Copy the output printed by `parser.py` and supply it alongside your Slack, Outlook, and LLM histories to your local LLM engine using the prompt specified above.
+### Step 3: Generating Charts
+```bash
+python generate_charts.py [DATE]
+```
+Outputs 4 PNG visualizations into the daily_log directory:
+- `{date}_active_minutes.png` — bar chart of active minutes per hour
+- `{date}_context_switches.png` — bar chart of context switches per hour
+- `{date}_app_time.png` — horizontal bar of time per application
+- `{date}_chrome_domains.png` — treemap-style breakdown of Chrome time by domain
+
+### Step 4: Generating the Retrospective
+```bash
+python generate_retro.py [DATE]        # generates retro from existing report + comms files
+python generate_retro.py --full [DATE]  # runs parser + charts + retro end-to-end
+```
+The retrospective script:
+1. Reads the `_report.md` and **all** `{date}_*.txt` supplementary files for the target date.
+2. Loads up to 3 prior days' retrospectives for week-pattern comparison.
+3. Sends all data to the `time-retro` kiro-cli agent (lightweight, no MCP servers).
+4. Saves the output as `{date}_retrospective.md` in the daily_log.
+
+**Prerequisite**: The `time-retro` kiro-cli agent must be configured at `~/.kiro/agents/time-retro.json`.
+
+### Supplementary Input Files Convention
+
+Both `parser.py` and `generate_retro.py` **dynamically discover** all `.txt` files matching the pattern `{date}_{source}.txt` in the daily_log directory. There is no hardcoded list of sources.
+
+**To add a new input source**, simply drop a file named `YYYY-MM-DD_{source}.txt` into the daily_log folder. It will automatically be:
+- Printed to stdout by `parser.py` (under the heading `=== {SOURCE} ===`)
+- Included in the `_report.md` (under `## {Source}`)
+- Fed to the LLM for retrospective synthesis (under `# {Source}`)
+
+**Current known sources:**
+| Filename suffix | Content |
+|----------------|---------|
+| `_slack.txt` | Slack channel/DM activity summary |
+| `_outlook.txt` | Outlook sent messages summary |
+| `_meshclaw.txt` | MeshClaw AI agent worklog |
+| `_sim.txt` | SIM tickets / sprint board updates |
+
+**Adding new sources (examples):**
+| Filename suffix | Content |
+|----------------|---------|
+| `_github.txt` | GitHub PR/review activity |
+| `_oncall.txt` | On-call incident notes |
+| `_meetings.txt` | Meeting notes/decisions |
+| `_research.txt` | Technical research summary |
+| `_kiro.txt` | Kiro agent interaction logs |
+
+No code changes are required — just create the file and the pipeline picks it up.
 
 ---
 
 ## 🔒 Architectural Decisions & Design Notes
 
 ### Defined Storage Path & Log Rotation
-* **Defined Path**: All logs are saved under `/Users/neerav/Documents/Projects/time_tracker/daily_log` (creating a clear logs folder rather than writing directly to user home or root directories).
+* **Defined Path**: Daily logs are stored under `~/.local/share/time-tracker/daily_log/`. The project directory (`~/Documents/Projects/time_tracker/`) contains scripts and a symlink `daily_log -> ~/.local/share/time-tracker/daily_log/` for convenient access.
+* **Why ~/.local/share**: macOS sandboxes LaunchAgent access to `~/Documents/`. Storing logs outside the protected folder ensures the background tracker can write without Full Disk Access permissions.
 * **Automatic Log Rotation**: Every iteration, the script dynamically gets the current date and sets `LOG_FILE="$LOG_DIR/${CURRENT_DATE}.csv"`. When midnight passes, the script automatically begins logging to the new file (e.g. `2026-05-25.csv`), leaving the previous day's log complete and untouched.
 
 ### Handling Screen Lock & Sleep States
@@ -440,7 +522,7 @@ fi
 ---
 
 ## 🔒 InfoSec Compliance Note
-Because the data remains entirely local:
 1. No telemetry or keystrokes are logged.
 2. Only frontmost window names are captured; no browser content, cookies, or actual file contents are read.
-3. The LLM analysis utilizes local compute (e.g. running a local Staff-level executive coach prompt on your private LLM), preventing corporate code/comms leaks.
+3. The LLM retrospective uses `kiro-cli` (Amazon internal tool) — data stays within the corporate boundary. No external APIs are called.
+4. All raw data (CSVs, communication summaries) remains on the local filesystem.
