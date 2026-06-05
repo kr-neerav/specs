@@ -52,7 +52,11 @@ This specification details custom extensions for the Zsh environment tailored fo
 2. The alias serves as a two-character shortcut for clearing the terminal screen — strictly cosmetic, no other behavior.
 3. If the existing `~/.zshrc` already defines `cl` for another purpose, the implementation must overwrite or remove the prior definition so `cl` unambiguously means "clear screen."
 
+### 2.6 Strategic Brain Trust Management (`sbt`, `sbtkill`)
+1. Provide a shell alias named `sbt`. When run, it must terminate any existing Node/Vite instances running for the app, change directories to the SBT project, start the Express backend in the background (logging output to `server.log`), and launch the Vite React frontend dev server in the foreground.
+2. Provide a shell alias named `sbtkill`. When run, it must terminate any active Node/Vite processes associated with the SBT project.
+
 ## 3. Reference Files
-- `zshrc_snippet.sh.example`: Contains the exact shell functions and aliases to append to the end of `~/.zshrc`.
+- `zshrc_snippet.sh.example`: Contains the exact shell functions and aliases to append to the end of `~/.zshrc` (including the SBT aliases).
 - `tmux-copy-last.py.example`: The Python script required to fulfill the Tmux buffer scraping capability. This should be placed in `~/.local/bin/tmux-copy-last` and made executable. Note: prompt detection matches `➜` anywhere in the line (not just start) to handle conda/env prefixes, and also matches `❯` for starship-style prompts.
 - `ask-agent.json.example`: The kiro-cli agent definition powering §2.3 (`ask`). Install by copying to `~/.kiro/agents/zshrc-ask.json`, then verify with `kiro-cli agent list | grep zshrc-ask`.

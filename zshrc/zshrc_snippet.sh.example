@@ -75,3 +75,7 @@ function asklast() {
 # If your existing ~/.zshrc has `cl` aliased to something else, remove that
 # prior definition first so this one wins unambiguously.
 alias cl='clear'
+
+# 6. Strategic Brain Trust (SBT) management
+alias sbt='pkill -if "server.js"; pkill -if "vite"; cd /Users/neerav/Documents/Projects/sbt && (node server.js > server.log 2>&1 & npm run dev)'
+alias sbtkill='pkill -if "server.js"; pkill -if "vite"'
