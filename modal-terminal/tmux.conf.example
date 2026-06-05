@@ -38,6 +38,17 @@ bind -T normal / command-prompt -p "Search Tabs:" "find-window '%%'"
 bind -T normal Tab next-window
 bind -T normal BTab previous-window
 
+# Jump directly to tabs 1-9
+bind -T normal 1 select-window -t 1
+bind -T normal 2 select-window -t 2
+bind -T normal 3 select-window -t 3
+bind -T normal 4 select-window -t 4
+bind -T normal 5 select-window -t 5
+bind -T normal 6 select-window -t 6
+bind -T normal 7 select-window -t 7
+bind -T normal 8 select-window -t 8
+bind -T normal 9 select-window -t 9
+
 # Renaming tabs
 bind -T normal r set key-table root \; command-prompt -I "#{window_name}" "rename-window '%%'"
 
@@ -48,10 +59,19 @@ bind -T normal X kill-window
 # Close all tabs (kill session)
 bind -T normal Q kill-session
 
+# Enter copy/scroll mode (visual mode)
+bind -T normal v copy-mode
+
 # --- Other Settings ---
+set -g history-limit 50000
 set -g mouse on
 setw -g mode-keys vi
 set -g status-keys vi
+
+# Vim-like selections in copy mode
+bind-key -T copy-mode-vi v send-keys -X begin-selection
+bind-key -T copy-mode-vi C-v send-keys -X rectangle-toggle
+bind-key -T copy-mode-vi Escape send-keys -X cancel
 
 # Start indexing at 1
 set -g base-index 1
@@ -66,10 +86,16 @@ set -g status-style bg=black,fg=white
 # Highlight the current tab in green
 setw -g window-status-current-style bg=green,fg=black,bold
 
+# Clean up window tab names
+setw -g window-status-format " #I:#W "
+setw -g window-status-current-format " #I:#W "
+
 # Monitor for active processing/output in background tabs
 setw -g monitor-activity on
 set -g visual-activity off
 # Highlight tabs with active processing in yellow
 setw -g window-status-activity-style bg=yellow,fg=black,bold
 
-set -g status-right '#{?#{==:#{client_key_table},normal},#[bg=red]#[fg=black,bold] NORMAL #[default],#[bg=green]#[fg=black,bold] INSERT #[default]}'
+set -g status-left-length 20
+set -g status-left '#{?pane_in_mode,#[bg=yellow]#[fg=black,bold] COPY #[default],#{?#{==:#{client_key_table},normal},#[bg=red]#[fg=black,bold] NORMAL #[default],#[bg=green]#[fg=black,bold] INSERT #[default]}} '
+set -g status-right ''
