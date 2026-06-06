@@ -2,7 +2,7 @@
 
 **Version:** 5.0 (Multi-Persona Architecture)
 **Target User:** Staff/Principal (L6/L7) Engineering Leadership
-**Environment:** Node.js (Express) + React (Vite) + Bash CLI + SQLite3 + `gemini` CLI
+**Environment:** Node.js (Express) + Bash CLI + SQLite3 + `antigravitycli`
 **Topology:** Dynamic Iterative Multi-Agent System (MAS)
 
 ---
@@ -24,7 +24,7 @@ The system relies on a **Push (Payload) Strategy**. Agents do not have direct da
 ### 2.1 Backend Architecture
 * **API Gateway:** A Node.js Express server (`server.js`) handles REST API endpoints for the frontend (`GET /api/sessions`, `POST /api/sessions`, `DELETE /api/sessions/:id`, `POST /api/sessions/:id/chat`, etc.).
 * **Subprocess Spawning:** When a new session is started, Node.js uses `child_process` to trigger the orchestrator.
-* **Token Extraction:** The application uses `--output-format json` with the `gemini` CLI. Bash scripts parse the output via `jq` to extract both the generated text and the API token usage, persisting both to the database.
+* **Token Extraction:** The application uses `--output-format json` with `antigravitycli`. Bash scripts parse the output via `jq` to extract both the generated text and the API token usage, persisting both to the database.
 
 ### 2.2 State Persistence (SQLite Schema)
 
@@ -76,7 +76,7 @@ CREATE TABLE deep_dive_chats (
 
 ## 3. Persona Configurations & Model Routing
 
-Compute is optimized by utilizing the `gemini-3.1-pro-preview` model via the CLI. 
+Compute is optimized by utilizing the `gemini-3.1-pro-preview` model via `antigravitycli`. 
 
 ### 3.1 Prompt Sub-Domains (Personas)
 The system now supports dynamic "Personas" that drastically alter the behavior of the agents without changing the orchestrator mechanics:
@@ -84,29 +84,12 @@ The system now supports dynamic "Personas" that drastically alter the behavior o
 * **Technical & Architecture (`backend/prompts/technical/`)**: Evaluates CAP theorem, data races, Developer Experience (DevEx), and system scalability (Staff+ level).
 
 ### 3.2 Orchestration Loop (`backend/core/execution_loop.sh`)
-* **Execution:** Sequential, avoiding Gemini API rate limits. Each agent script receives a `$PERSONA` argument to determine which prompt directory to read from. Output is strictly formatted as JSON.
+* **Execution:** Sequential, avoiding Antigravity API rate limits. Each agent script receives a `$PERSONA` argument to determine which prompt directory to read from. Output is strictly formatted as JSON.
 
 ---
 
-## 4. User Interface Architecture (React / Vite)
+## 4. User Interface Architecture
 
-The frontend is built as a Single Page Application (SPA) providing real-time visibility into the multi-agent simulation.
+The Strategic Brain Trust integrates with the centralized [Common Review Platform](../common_ui/README.md) for its UI layer. 
 
-### 4.1 Layout & Navigation (Sidebar)
-* **Sidebar Container:** Displays a paginated list of past sessions (10 per page), sorted chronologically with precise timestamps.
-* **Features:** Includes a real-time text search filter (searching titles and original proposals), session deletion capabilities, and a "Hide/Show" toggle to collapse the sidebar for full-screen focus.
-* **Dynamic Renaming:** Sessions are auto-titled by an LLM upon creation, but users can edit the title inline via a pencil icon.
-* **Token Telemetry:** Each historic session card natively calculates and renders a dynamic `🪙 X` badge, summing the API token consumption across the original execution loop and any subsequent deep dive chats.
-
-### 4.2 Main Workspace & Real-time Transparency
-* **Persona Selection:** A dropdown allows users to target their proposal either towards "Leadership" or "Technical" agents.
-* **File Uploads:** Users can natively load `.txt`, `.md`, `.csv`, and `.json` documents directly into the proposal text box via an HTML5 `FileReader`.
-* **Live State Tracking:** Status badges (`✅ Completed` or a dynamic, animated CSS pulsing dot indicating active processing) poll the backend dynamically to reflect the Bash script's progress.
-* **Iteration Blocks:** The UI renders each iteration sequentially. The Orchestrator's Synthesis is contained within a collapsible card to save vertical space.
-* **Agent Transparency Dashboard:** Inside each iteration block, a sub-dashboard displays the 4 agent critiques. These are collapsed by default. The UI explicitly renders the exact API Token cost (🪙 X Tokens) utilized by each agent per iteration.
-* **Universal Clipboard Integration:** A reusable `CopyButton` component (`📋 Copy`) is integrated across the UI, allowing one-click Markdown extraction of the original proposal, orchestrator syntheses, individual agent critiques, and final recommendations.
-
-### 4.3 Deep Dive Chat Interface
-* **Location:** Rendered at the bottom of the session view, with a toggle to hide/show the chat pane.
-* **Context Injection:** When the user asks a question, the Node.js backend fetches the *entire session state* from SQLite (Original Proposal, all Iterations, all Agent Critiques, and the Final Summary). This massive context block is injected into the Deep Dive LLM system prompt, allowing hyper-accurate cross-iteration analysis.
-* **Formatting & Telemetry:** Chat output is beautifully formatted using `react-markdown`. Every assistant response explicitly displays its API Token cost, and an aggregated "Total Tokens" counter is pinned to the top of the Deep Dive pane. Chat bubbles also include the one-click copy to clipboard integration.
+The specific UI capabilities—including Iteration Blocks, the Agent Transparency Dashboard, and the Deep Dive Chat Interface—are defined in the dedicated [SBT UI Specification](../common_ui/sbt.md). The backend exposes the SQLite payload and state boundaries via REST API for the common UI to consume.
